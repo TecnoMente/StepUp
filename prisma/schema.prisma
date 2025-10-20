@@ -1,0 +1,34 @@
+// Prisma schema for StepUp ATS Resume Generator
+// SQLite for local development (zero cost)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Raw text inputs
+  jdText     String?  // Job Description
+  resumeText String?  // Parsed resume text
+  extraText  String?  // Additional projects/skills
+
+  // ATS terms extracted from JD
+  terms      String   @default("[]") // JSON array of strings
+
+  // Generated outputs (stored as JSON)
+  resumeJson String?  // TailoredResume JSON
+  letterJson String?  // TailoredCoverLetter JSON
+
+  // Metadata
+  atsScore   Int?     // Number of matched terms
+
+  @@index([createdAt])
+}

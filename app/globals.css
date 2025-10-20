@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --teal-900: #08373a;
+    --teal-800: #0a3f44;
+    --beige-50: #f5ead7;
+    --gold-300: #d9b783;
+    --ink-900: #0e0f10;
+    --ink-700: #2a2f33;
+  }
+
+  body {
+    @apply bg-gradient-to-br from-teal-900 to-teal-800 text-ink-900 min-h-screen font-sans;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
+  }
+}
+
+@layer components {
+  .container-custom {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .card-beige {
+    @apply bg-beige-50 rounded-2xl shadow-lg p-8;
+  }
+
+  .btn-primary {
+    @apply bg-gold-300 text-ink-900 font-semibold px-6 py-3 rounded-lg hover:bg-gold-300/90 transition-colors focus:outline-none focus:ring-2 focus:ring-gold-300 focus:ring-offset-2 min-h-[44px];
+  }
+
+  .btn-secondary {
+    @apply bg-beige-50 text-ink-900 font-semibold px-6 py-3 rounded-lg hover:bg-beige-50/90 transition-colors focus:outline-none focus:ring-2 focus:ring-beige-50 focus:ring-offset-2 min-h-[44px];
+  }
+}
