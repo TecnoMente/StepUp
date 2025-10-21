@@ -1,7 +1,7 @@
-// GET /api/download/cover-letter?sessionId=... - Download cover letter as HTML
+// GET /api/download/cover-letter?sessionId=... - Download cover letter as PDF
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/utils/db';
-import { generateCoverLetterHTML } from '@/lib/utils/pdf-gen';
+import { generateCoverLetterPDF } from '@/lib/utils/pdf-generator';
 import type { TailoredCoverLetter } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -25,12 +25,14 @@ export async function GET(request: NextRequest) {
     }
 
     const letter = JSON.parse(session.letterJson) as TailoredCoverLetter;
-    const html = generateCoverLetterHTML(letter, 'Tailored Cover Letter');
 
-    return new NextResponse(html, {
+    // Generate PDF buffer
+    const pdfBuffer = await generateCoverLetterPDF(letter);
+
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
-        'Content-Type': 'text/html',
-        'Content-Disposition': 'inline; filename="cover-letter.html"',
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'attachment; filename="Cover_Letter.pdf"',
       },
     });
   } catch (error) {

@@ -12,6 +12,7 @@ function ResumePageContent() {
   const [resume, setResume] = useState<TailoredResume | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingLetter, setIsGeneratingLetter] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     if (!sessionId) {
@@ -31,8 +32,46 @@ function ResumePageContent() {
       .finally(() => setIsLoading(false));
   }, [sessionId, router]);
 
-  const handleDownloadResume = () => {
-    window.open(`/api/download/resume?sessionId=${sessionId}`, '_blank');
+  const handleDownloadResume = async () => {
+    try {
+      // Always save current resume state before downloading
+      if (resume) {
+        const response = await fetch(`/api/session/${sessionId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resumeJson: JSON.stringify(resume) }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to save resume');
+        }
+
+        // Wait a moment for database to commit
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      // Trigger download
+      window.location.href = `/api/download/resume?sessionId=${sessionId}`;
+    } catch (error) {
+      console.error('Error saving resume:', error);
+      alert('Failed to save changes. Please try again.');
+    }
+  };
+
+  const handleEditToggle = () => {
+    setIsEditing(!isEditing);
+  };
+
+  const updateResumeField = (path: (string | number)[], value: string) => {
+    if (!resume) return;
+    const newResume = JSON.parse(JSON.stringify(resume)) as TailoredResume;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let current: any = newResume;
+    for (let i = 0; i < path.length - 1; i++) {
+      current = current[path[i]];
+    }
+    current[path[path.length - 1]] = value;
+    setResume(newResume);
   };
 
   const handleGenerateCoverLetter = async () => {
@@ -89,13 +128,38 @@ function ResumePageContent() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
         {/* Left: Resume Preview */}
         <div className="lg:col-span-2 card-beige">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-ink-900">Resume Preview</h3>
+            <button
+              onClick={handleEditToggle}
+              className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                isEditing
+                  ? 'bg-gold-300 text-ink-900 hover:bg-gold-400'
+                  : 'bg-beige-100 text-ink-900 hover:bg-beige-200'
+              }`}
+            >
+              {isEditing ? 'Done Editing' : 'Edit Resume'}
+            </button>
+          </div>
           <div className="max-h-[600px] overflow-y-auto">
-            <h2 className="text-2xl font-serif font-bold text-center mb-4 border-b-2 border-ink-900 pb-2">
-              JORDAN PATEL
+            <h2
+              contentEditable={isEditing}
+              suppressContentEditableWarning
+              onBlur={(e) => updateResumeField(['name'], e.currentTarget.textContent || '')}
+              className="text-2xl font-serif font-bold text-center mb-4 border-b-2 border-ink-900 pb-2 focus:outline-none focus:bg-beige-100"
+            >
+              {resume.name.toUpperCase()}
             </h2>
 
             {resume.summary && (
-              <p className="text-center mb-6 text-sm italic">{resume.summary}</p>
+              <p
+                contentEditable={isEditing}
+                suppressContentEditableWarning
+                onBlur={(e) => updateResumeField(['summary'], e.currentTarget.textContent || '')}
+                className="text-center mb-6 text-sm italic focus:outline-none focus:bg-beige-100"
+              >
+                {resume.summary}
+              </p>
             )}
 
             {resume.sections.map((section, idx) => (
@@ -108,18 +172,85 @@ function ResumePageContent() {
                     {item.title && (
                       <div className="flex justify-between mb-1">
                         <div>
-                          <strong>{item.title}</strong>
-                          {item.organization && ` • ${item.organization}`}
+                          <strong
+                            contentEditable={isEditing}
+                            suppressContentEditableWarning
+                            onBlur={(e) =>
+                              updateResumeField(
+                                ['sections', idx, 'items', itemIdx, 'title'],
+                                e.currentTarget.textContent || ''
+                              )
+                            }
+                            className="focus:outline-none focus:bg-beige-100"
+                          >
+                            {item.title}
+                          </strong>
+                          {item.organization && (
+                            <span>
+                              {' • '}
+                              <span
+                                contentEditable={isEditing}
+                                suppressContentEditableWarning
+                                onBlur={(e) =>
+                                  updateResumeField(
+                                    ['sections', idx, 'items', itemIdx, 'organization'],
+                                    e.currentTarget.textContent || ''
+                                  )
+                                }
+                                className="focus:outline-none focus:bg-beige-100"
+                              >
+                                {item.organization}
+                              </span>
+                            </span>
+                          )}
                         </div>
                         <div className="text-sm italic text-ink-700">
-                          {item.location} {item.dateRange}
+                          <span
+                            contentEditable={isEditing}
+                            suppressContentEditableWarning
+                            onBlur={(e) =>
+                              updateResumeField(
+                                ['sections', idx, 'items', itemIdx, 'location'],
+                                e.currentTarget.textContent || ''
+                              )
+                            }
+                            className="focus:outline-none focus:bg-beige-100"
+                          >
+                            {item.location}
+                          </span>{' '}
+                          <span
+                            contentEditable={isEditing}
+                            suppressContentEditableWarning
+                            onBlur={(e) =>
+                              updateResumeField(
+                                ['sections', idx, 'items', itemIdx, 'dateRange'],
+                                e.currentTarget.textContent || ''
+                              )
+                            }
+                            className="focus:outline-none focus:bg-beige-100"
+                          >
+                            {item.dateRange}
+                          </span>
                         </div>
                       </div>
                     )}
                     {item.bullets && (
                       <ul className="list-disc ml-6 text-sm space-y-1">
                         {item.bullets.map((bullet, bulletIdx) => (
-                          <li key={bulletIdx}>{bullet.text}</li>
+                          <li
+                            key={bulletIdx}
+                            contentEditable={isEditing}
+                            suppressContentEditableWarning
+                            onBlur={(e) =>
+                              updateResumeField(
+                                ['sections', idx, 'items', itemIdx, 'bullets', bulletIdx, 'text'],
+                                e.currentTarget.textContent || ''
+                              )
+                            }
+                            className="focus:outline-none focus:bg-beige-100"
+                          >
+                            {bullet.text}
+                          </li>
                         ))}
                       </ul>
                     )}
@@ -196,7 +327,7 @@ function ResumePageContent() {
                   d="M5 13l4 4L19 7"
                 />
               </svg>
-              <span className="text-ink-900">Sovimized Skills section</span>
+              <span className="text-ink-900">Optimized Skills section</span>
             </div>
             <div className="flex items-start gap-3">
               <svg

@@ -11,6 +11,7 @@ function CoverLetterPageContent() {
 
   const [letter, setLetter] = useState<TailoredCoverLetter | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     if (!sessionId) {
@@ -30,8 +31,46 @@ function CoverLetterPageContent() {
       .finally(() => setIsLoading(false));
   }, [sessionId, router]);
 
-  const handleDownloadLetter = () => {
-    window.open(`/api/download/cover-letter?sessionId=${sessionId}`, '_blank');
+  const handleDownloadLetter = async () => {
+    try {
+      // Always save current cover letter state before downloading
+      if (letter) {
+        const response = await fetch(`/api/session/${sessionId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ letterJson: JSON.stringify(letter) }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to save cover letter');
+        }
+
+        // Wait a moment for database to commit
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      // Trigger download
+      window.location.href = `/api/download/cover-letter?sessionId=${sessionId}`;
+    } catch (error) {
+      console.error('Error saving cover letter:', error);
+      alert('Failed to save changes. Please try again.');
+    }
+  };
+
+  const handleEditToggle = () => {
+    setIsEditing(!isEditing);
+  };
+
+  const updateLetterField = (field: 'salutation' | 'closing', value: string) => {
+    if (!letter) return;
+    setLetter({ ...letter, [field]: value });
+  };
+
+  const updateParagraph = (index: number, value: string) => {
+    if (!letter) return;
+    const newParagraphs = [...letter.paragraphs];
+    newParagraphs[index] = { ...newParagraphs[index], text: value };
+    setLetter({ ...letter, paragraphs: newParagraphs });
   };
 
   if (isLoading) {
@@ -66,16 +105,49 @@ function CoverLetterPageContent() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
         {/* Left: Cover Letter Preview */}
         <div className="lg:col-span-2 card-beige">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-ink-900">Cover Letter Preview</h3>
+            <button
+              onClick={handleEditToggle}
+              className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                isEditing
+                  ? 'bg-gold-300 text-ink-900 hover:bg-gold-400'
+                  : 'bg-beige-100 text-ink-900 hover:bg-beige-200'
+              }`}
+            >
+              {isEditing ? 'Done Editing' : 'Edit Cover Letter'}
+            </button>
+          </div>
           <div className="max-h-[600px] overflow-y-auto prose prose-sm max-w-none">
-            <div className="mb-6">{letter.salutation}</div>
+            <div
+              contentEditable={isEditing}
+              suppressContentEditableWarning
+              onBlur={(e) => updateLetterField('salutation', e.currentTarget.textContent || '')}
+              className="mb-6 focus:outline-none focus:bg-beige-100"
+            >
+              {letter.salutation}
+            </div>
 
             {letter.paragraphs.map((paragraph, idx) => (
-              <p key={idx} className="mb-4 text-justify">
+              <p
+                key={idx}
+                contentEditable={isEditing}
+                suppressContentEditableWarning
+                onBlur={(e) => updateParagraph(idx, e.currentTarget.textContent || '')}
+                className="mb-4 text-justify focus:outline-none focus:bg-beige-100"
+              >
                 {paragraph.text}
               </p>
             ))}
 
-            <div className="mt-6 whitespace-pre-line">{letter.closing}</div>
+            <div
+              contentEditable={isEditing}
+              suppressContentEditableWarning
+              onBlur={(e) => updateLetterField('closing', e.currentTarget.textContent || '')}
+              className="mt-6 whitespace-pre-line focus:outline-none focus:bg-beige-100"
+            >
+              {letter.closing}
+            </div>
           </div>
 
           {/* Button */}

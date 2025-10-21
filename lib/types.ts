@@ -27,6 +27,10 @@ export interface ResumeSection {
 }
 
 export interface TailoredResume {
+  name: string;
+  email?: string;
+  phone?: string;
+  location?: string;
   summary?: string;
   sections: ResumeSection[];
   matched_term_count: number;

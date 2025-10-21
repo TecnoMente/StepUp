@@ -10,19 +10,80 @@ import type {
   TailoredCoverLetter,
 } from '@/lib/types';
 
-// System prompt for Claude - enforces non-hallucination rules
-const SYSTEM_PROMPT = `You are an expert ATS resume optimizer. Your task is to tailor resumes and cover letters to job descriptions while maintaining 100% factual accuracy.
+// System prompt for Claude - enforces non-hallucination rules AND strict ATS optimization
+const SYSTEM_PROMPT = `You are an expert ATS (Applicant Tracking System) resume optimizer. Your task is to create ATS-compliant, one-page resumes that maximize keyword matches while maintaining 100% factual accuracy.
 
-CRITICAL RULES:
+CRITICAL: SMART ONE-PAGE OPTIMIZATION
+**GOAL: Fit on one page (~750-850 words) while keeping ALL RELEVANT content**
+- Prioritize quality over quantity - keep the most impactful information
+- Use concise, achievement-focused bullets (15-25 words each)
+- Include ALL experiences that match job description keywords
+- Reduce bullets for less relevant roles, but DON'T remove entire experiences unless truly outdated
+
+CONTENT PRIORITIZATION STRATEGY (Smart Selection):
+1. **ALWAYS INCLUDE:**
+   - ALL experience that directly matches job description keywords/requirements
+   - Recent roles (last 3-5 years) - give 3-5 detailed bullets each
+   - Education (keep concise: institution, degree, date, GPA if strong, relevant coursework)
+   - Skills section (organize by theme, include ALL keywords from JD)
+
+2. **CONDENSE BUT KEEP:**
+   - Mid-tier experience (5-7 years ago) - reduce to 2-3 bullets focusing on achievements
+   - Relevant projects (even if old) - keep if they match JD keywords, use 2-3 bullets
+   - Leadership/activities - keep if relevant to role, use 1-2 bullets or single line
+
+3. **ONLY REMOVE IF ABSOLUTELY NECESSARY:**
+   - Experiences 10+ years old with NO relevance to current JD
+   - Duplicate/redundant skills or experiences
+   - Very brief roles (<3 months) with minimal impact
+
+4. **WORD COUNT MANAGEMENT:**
+   - Summary: 50-75 words MAX (or omit if space needed for experience)
+   - Each bullet: 15-25 words (concise, impactful)
+   - Target total: 750-850 words
+   - If over 850 words: tighten bullet wording first, THEN reduce bullets on least relevant roles
+
+CRITICAL ATS FORMATTING RULES:
+1. **ATS-FRIENDLY STRUCTURE:**
+   - Single column layout ONLY (no multi-column designs)
+   - Standard section headers: "WORK EXPERIENCE", "EDUCATION", "SKILLS", "PROJECT EXPERIENCE", "LEADERSHIP"
+   - Simple bullet points (use "•" character only)
+   - NO tables, text boxes, columns, or special formatting
+   - Font sizing implied: 10-12pt body, headers slightly larger
+   - Consistent date format: "Month YYYY - Month YYYY" (e.g., "May 2025 - August 2025")
+
+2. **KEYWORD OPTIMIZATION (Primary ATS Scoring Factor):**
+   - Extract exact keywords from job description
+   - Use keywords naturally in context (NO keyword stuffing)
+   - Match job description terminology EXACTLY (capitalization, spelling)
+   - If JD says "JavaScript" use "JavaScript" not "JS"
+   - If JD says "CI/CD" use "CI/CD" not "continuous integration"
+   - Place keywords in Skills section AND Experience bullets
+   - Integrate keywords into achievement statements
+
+3. **ACHIEVEMENT-FOCUSED BULLETS (50% Must Have Metrics):**
+   - Start with strong action verbs: Developed, Implemented, Led, Optimized, Designed, Managed, Engineered, Built
+   - Include quantified results: numbers, percentages, dollar amounts, time savings
+   - Format: "Action verb + what you did + keywords + measurable impact"
+   - Example: "Implemented CI/CD pipeline using Jenkins and Docker, reducing deployment time from 2 hours to 15 minutes"
+   - At least 50% of bullets MUST have quantified achievements
+   - Bad: "Responsible for database management"
+   - Good: "Optimized PostgreSQL database queries, reducing average response time by 60% and improving user experience"
+
+CRITICAL FACTUAL ACCURACY RULES:
 1. Use ONLY evidence from the provided resume, job description, or extra information
 2. Return JSON matching the schema exactly
 3. For every bullet/sentence, include evidence_spans[] pointing to exact substrings in the inputs
 4. NEVER invent employers, roles, dates, locations, credentials, or numbers
-5. Maximize natural inclusion of ATS terms from the provided list
-6. Keep language concise and professional; avoid buzzword stuffing
-7. Reorder and rephrase for clarity and keyword alignment, but preserve all factual content
+5. Reorder and rephrase for clarity and keyword alignment, but preserve all factual content
+6. Evidence spans must reference character positions in the source text (start and end indices)
 
-Evidence spans must reference character positions in the source text (start and end indices).
+VALIDATION BEFORE RETURNING:
+- Count total words across ALL fields
+- If > 850 words: tighten wording first, then reduce bullets on least JD-relevant roles
+- Verify 50%+ bullets have quantified metrics
+- Confirm all facts have evidence spans
+- Ensure ALL experiences matching JD keywords are included
 
 When you reference a fact, you must cite the exact substring from one of the source documents by providing its character offset.`;
 
@@ -64,6 +125,22 @@ export class LLMClient {
           input_schema: {
             type: 'object',
             properties: {
+              name: {
+                type: 'string',
+                description: 'Full name of the candidate (extract from the resume)',
+              },
+              email: {
+                type: 'string',
+                description: 'Email address (extract from the resume)',
+              },
+              phone: {
+                type: 'string',
+                description: 'Phone number (extract from the resume)',
+              },
+              location: {
+                type: 'string',
+                description: 'City and state location (extract from the resume)',
+              },
               summary: {
                 type: 'string',
                 description: 'Optional professional summary',
@@ -125,7 +202,7 @@ export class LLMClient {
                 description: 'Total number of ATS terms matched',
               },
             },
-            required: ['sections', 'matched_term_count'],
+            required: ['name', 'sections', 'matched_term_count'],
           },
         },
       ],
@@ -269,7 +346,7 @@ ${jd}`,
    * Build prompt for resume generation
    */
   private buildResumePrompt(input: GenerateResumeInput): string {
-    return `I need you to tailor a resume to match a job description using ONLY the information provided below. Follow all the critical rules in your system prompt.
+    return `I need you to create a ONE-PAGE, ATS-optimized resume tailored to this job description using ONLY the information provided below.
 
 **Job Description:**
 ${input.jd}
@@ -279,15 +356,64 @@ ${input.resume}
 
 ${input.extra ? `**Additional Information:**\n${input.extra}\n` : ''}
 
-**ATS Terms to Prioritize:**
+**ATS Keywords to Incorporate (use exact spelling/capitalization):**
 ${input.terms.join(', ')}
 
-**Task:**
-1. Reorganize and optimize the resume sections to highlight relevant experience
-2. Rewrite bullets to naturally incorporate ATS terms while keeping facts accurate
-3. For EVERY bullet point, cite evidence_spans with exact character offsets from the source documents
-4. DO NOT invent any new projects, roles, dates, or credentials
-5. Count how many ATS terms were successfully incorporated
+**CRITICAL INSTRUCTIONS:**
+
+1. **SMART CONTENT SELECTION (Keep ALL Relevant Experience):**
+   - **ALWAYS INCLUDE:** All experiences that match job description keywords/requirements
+   - **PRIORITIZE:** Recent roles (last 3-5 years) with 3-5 detailed bullets each
+   - **CONDENSE:** Mid-tier roles (5-7 years ago) to 2-3 bullets focusing on achievements
+   - **ONLY REMOVE:** Experiences 10+ years old with ZERO relevance to the job description
+   - Target: 750-850 words total, but NEVER sacrifice relevant experience just to hit word count
+   - If over 850 words: tighten bullet wording FIRST, then reduce bullets on least relevant roles
+
+2. **KEYWORD OPTIMIZATION (Critical for ATS):**
+   - Use EXACT terminology from job description (match capitalization, spelling)
+   - If JD says "JavaScript" → use "JavaScript" (NOT "JS", "Javascript", "java script")
+   - If JD says "CI/CD" → use "CI/CD" (NOT "continuous integration")
+   - Place keywords in: Skills section + Experience bullets (prove you used them)
+   - NO keyword stuffing - integrate naturally into achievement statements
+
+3. **ACHIEVEMENT-FOCUSED BULLETS (50% Must Have Metrics):**
+   - START with action verbs: Developed, Implemented, Led, Optimized, Designed, Managed, Built, Engineered
+   - INCLUDE quantified results: numbers, percentages, dollar amounts, time saved
+   - FORMAT: "Action verb + what you did + technologies/keywords + measurable impact"
+   - GOOD: "Implemented CI/CD pipeline using Jenkins and Docker, reducing deployment time from 2 hours to 15 minutes"
+   - BAD: "Responsible for improving deployment processes"
+   - Each bullet: 15-25 words (concise but impactful)
+   - **REQUIREMENT: At least 50% of bullets MUST have specific numbers/metrics**
+
+4. **ATS-COMPLIANT FORMATTING:**
+   - Section headers: "WORK EXPERIENCE", "EDUCATION", "SKILLS", "PROJECT EXPERIENCE", "LEADERSHIP"
+   - Date format: "Month YYYY - Month YYYY" (e.g., "January 2022 - July 2025")
+   - Single column layout only (no tables, multi-column, text boxes)
+   - Simple bullets: "•" character only
+   - No special formatting (handled in PDF rendering)
+
+5. **INCLUDE ALL IMPORTANT SECTIONS:**
+   - Education: Institution, degree, graduation date, GPA (if strong), relevant coursework
+   - Skills: Organize by theme (e.g., "Languages & Frameworks:", "DevOps & Cloud:")
+   - Work Experience: ALL roles, prioritizing recent and JD-relevant
+   - Projects: Include if they demonstrate JD-relevant skills
+   - Leadership/Activities: Include if space permits and relevant
+
+6. **FACTUAL ACCURACY (ZERO FABRICATION):**
+   - Extract candidate's full name, email, phone, and location from resume text
+   - Use ONLY facts from provided documents
+   - For EVERY bullet, cite evidence_spans with exact character offsets
+   - NEVER invent: employers, roles, dates, locations, credentials, numbers, projects
+   - If you can't find evidence for a claim, DON'T include it
+
+**VALIDATION CHECKLIST (before returning):**
+✓ ALL experiences matching JD keywords are included
+✓ Total word count ≤ 850 words (tighten wording if over)
+✓ At least 50% of bullets have quantified metrics
+✓ All keywords from JD incorporated naturally
+✓ All facts have evidence_spans citations
+✓ Name extracted from resume
+✓ No fabricated information
 
 Use the generate_tailored_resume tool to return your result.`;
   }
