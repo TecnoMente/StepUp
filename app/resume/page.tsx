@@ -327,7 +327,7 @@ function ResumePageContent() {
                   d="M5 13l4 4L19 7"
                 />
               </svg>
-              <span className="text-ink-900">Sovimized Skills section</span>
+              <span className="text-ink-900">Optimized Skills section</span>
             </div>
             <div className="flex items-start gap-3">
               <svg

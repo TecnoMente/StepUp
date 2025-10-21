@@ -113,21 +113,6 @@ export default function HomePage() {
 
         {/* Card 2: Generate Tailored Resume */}
         <div className="card-beige flex flex-col items-center justify-center text-center">
-          <div className="mb-6">
-            <svg
-              className="w-24 h-24 mx-auto text-ink-700"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-              />
-            </svg>
-          </div>
           <input
             type="file"
             accept=".pdf"
@@ -135,16 +120,47 @@ export default function HomePage() {
             className="hidden"
             id="resume-upload"
           />
+
+          {/* Clickable upload area with cloud icon */}
           <label
             htmlFor="resume-upload"
-            className="btn-secondary cursor-pointer mb-4"
+            className="cursor-pointer mb-6 group"
           >
-            {resumeFile ? resumeFile.name : 'Upload Resume (PDF)'}
+            <div className="transition-transform group-hover:scale-105">
+              <svg
+                className="w-24 h-24 mx-auto text-ink-700 group-hover:text-gold-400 transition-colors"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                />
+              </svg>
+            </div>
+            <div className="mt-4 text-lg font-semibold text-ink-900 group-hover:text-gold-400 transition-colors">
+              {resumeFile ? (
+                <span className="text-green-700">✓ {resumeFile.name}</span>
+              ) : (
+                'Upload Resume (PDF)'
+              )}
+            </div>
+            {!resumeFile && (
+              <div className="text-sm text-ink-700 mt-2">Click cloud to upload</div>
+            )}
           </label>
+
           <button
             onClick={handleGenerateResume}
-            disabled={isLoading}
-            className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isLoading || !resumeFile}
+            className={`btn-primary w-full transition-all ${
+              !resumeFile
+                ? 'opacity-40 cursor-not-allowed bg-gray-400'
+                : 'opacity-100 hover:bg-gold-400'
+            }`}
           >
             {isLoading ? 'Generating...' : 'Generate Tailored Resume'}
           </button>

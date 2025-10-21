@@ -16,14 +16,15 @@ export default function RootLayout({
       <body>
         <nav className="bg-teal-900/50 backdrop-blur-sm border-b border-teal-800">
           <div className="container-custom py-4 flex justify-between items-center">
-            <a href="/" className="text-2xl font-serif font-bold text-beige-50 hover:text-gold-300 transition-colors">
-              StepUp
+            <a href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+              <img src="/logo.png" alt="StepUp Logo" className="h-10 w-10" />
+              <span className="text-2xl font-serif font-bold text-beige-50">StepUp</span>
             </a>
             <div className="flex gap-6 text-beige-50">
-              <a href="/" className="hover:text-gold-300 transition-colors font-medium">
+              <a href="/resumes" className="hover:text-gold-300 transition-colors font-medium">
                 Resumes
               </a>
-              <a href="/" className="hover:text-gold-300 transition-colors font-medium">
+              <a href="/cover-letters" className="hover:text-gold-300 transition-colors font-medium">
                 Cover Letters
               </a>
             </div>

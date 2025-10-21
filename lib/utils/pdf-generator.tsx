@@ -3,36 +3,37 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet, renderToBuffer } from '@react-pdf/renderer';
 import type { TailoredResume, TailoredCoverLetter } from '@/lib/types';
 
-// ATS-COMPLIANT Resume PDF Styles - Optimized for ONE page
-// Following ATS best practices: single column, standard fonts, simple formatting
+// ATS-COMPLIANT Resume PDF Styles - BALANCED FOR APPEARANCE & ONE-PAGE FIT
+// Following strict ATS best practices: single column, standard fonts, simple formatting
+// Optimized for professional appearance while maintaining one-page constraint
 const resumeStyles = StyleSheet.create({
   page: {
-    padding: '0.5in 0.5in', // ATS-compliant margins (0.5-0.75in recommended)
-    fontSize: 10, // ATS-compliant base font size (10-12pt)
+    padding: '0.5in 0.5in', // ATS-compliant minimum margins
+    fontSize: 10, // ATS minimum (10-12pt range)
     fontFamily: 'Helvetica', // ATS-safe font (Arial/Calibri/Helvetica)
-    lineHeight: 1.15, // ATS-recommended line spacing (1.0-1.15)
+    lineHeight: 1.15, // ATS-compliant spacing (1.0-1.15 range)
     color: '#000000', // Black text only (ATS requirement)
   },
   name: {
-    fontSize: 16, // Prominent but not excessive
+    fontSize: 16, // Professional header size
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 4,
-    borderBottom: '1.5pt solid #000', // Simple horizontal rule (ATS-safe)
+    borderBottom: '2pt solid #000', // Simple horizontal rule (ATS-safe)
     paddingBottom: 4,
     letterSpacing: 0.5,
   },
   summary: {
-    fontSize: 10, // Same as body for consistency
+    fontSize: 10, // Match body font
     textAlign: 'left', // Left-align for ATS parsing
-    marginBottom: 8,
+    marginBottom: 6,
     lineHeight: 1.15,
   },
   section: {
-    marginBottom: 6, // Compact spacing for one-page constraint
+    marginBottom: 6, // Better visual separation
   },
   sectionTitle: {
-    fontSize: 11, // Slightly larger than body (ATS-compliant)
+    fontSize: 11, // Slightly larger for hierarchy
     fontWeight: 'bold',
     borderBottom: '1pt solid #000', // Simple divider (ATS-safe)
     marginBottom: 3,
@@ -40,7 +41,7 @@ const resumeStyles = StyleSheet.create({
     textTransform: 'uppercase', // Standard section headers
   },
   item: {
-    marginBottom: 4, // Compact but readable
+    marginBottom: 4, // Better spacing between experiences
   },
   itemHeader: {
     flexDirection: 'row',
@@ -55,7 +56,7 @@ const resumeStyles = StyleSheet.create({
     fontSize: 10,
   },
   itemMeta: {
-    fontSize: 9,
+    fontSize: 9, // Slightly smaller for metadata
     fontStyle: 'italic',
     color: '#000', // Black only (ATS requirement)
   },
@@ -64,8 +65,8 @@ const resumeStyles = StyleSheet.create({
     marginTop: 2,
   },
   bullet: {
-    fontSize: 10, // Same as body (ATS-compliant)
-    marginBottom: 1.5,
+    fontSize: 10, // Match body font
+    marginBottom: 1.5, // Breathing room between bullets
     flexDirection: 'row',
     lineHeight: 1.15,
   },
