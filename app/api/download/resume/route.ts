@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     }
 
     const resume = JSON.parse(session.resumeJson) as TailoredResume;
-    const html = generateResumeHTML(resume, 'Tailored Resume');
+    const html = generateResumeHTML(resume, resume.name);
 
     return new NextResponse(html, {
       headers: {

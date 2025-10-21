@@ -91,7 +91,7 @@ function ResumePageContent() {
         <div className="lg:col-span-2 card-beige">
           <div className="max-h-[600px] overflow-y-auto">
             <h2 className="text-2xl font-serif font-bold text-center mb-4 border-b-2 border-ink-900 pb-2">
-              JORDAN PATEL
+              {resume.name.toUpperCase()}
             </h2>
 
             {resume.summary && (

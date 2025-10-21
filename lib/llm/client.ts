@@ -64,6 +64,10 @@ export class LLMClient {
           input_schema: {
             type: 'object',
             properties: {
+              name: {
+                type: 'string',
+                description: 'Full name of the candidate (extract from the resume)',
+              },
               summary: {
                 type: 'string',
                 description: 'Optional professional summary',
@@ -125,7 +129,7 @@ export class LLMClient {
                 description: 'Total number of ATS terms matched',
               },
             },
-            required: ['sections', 'matched_term_count'],
+            required: ['name', 'sections', 'matched_term_count'],
           },
         },
       ],
@@ -283,11 +287,12 @@ ${input.extra ? `**Additional Information:**\n${input.extra}\n` : ''}
 ${input.terms.join(', ')}
 
 **Task:**
-1. Reorganize and optimize the resume sections to highlight relevant experience
-2. Rewrite bullets to naturally incorporate ATS terms while keeping facts accurate
-3. For EVERY bullet point, cite evidence_spans with exact character offsets from the source documents
-4. DO NOT invent any new projects, roles, dates, or credentials
-5. Count how many ATS terms were successfully incorporated
+1. Extract the candidate's full name from the resume text
+2. Reorganize and optimize the resume sections to highlight relevant experience
+3. Rewrite bullets to naturally incorporate ATS terms while keeping facts accurate
+4. For EVERY bullet point, cite evidence_spans with exact character offsets from the source documents
+5. DO NOT invent any new projects, roles, dates, or credentials
+6. Count how many ATS terms were successfully incorporated
 
 Use the generate_tailored_resume tool to return your result.`;
   }
