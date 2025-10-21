@@ -31,14 +31,34 @@ export async function POST(request: NextRequest) {
 
     const atsTerms = JSON.parse(session.terms || '[]') as string[];
 
-    // Generate tailored cover letter using Claude
+    // Generate tailored cover letter using Claude (with retry on failure)
     const llmClient = getLLMClient();
-    const tailoredLetter = await llmClient.generateCoverLetter({
-      jd: session.jdText,
-      resume: session.resumeText,
-      extra: session.extraText || undefined,
-      terms: atsTerms,
-    });
+    let tailoredLetter;
+    let lastError;
+
+    // Retry up to 2 times on failure
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        tailoredLetter = await llmClient.generateCoverLetter({
+          jd: session.jdText,
+          resume: session.resumeText,
+          extra: session.extraText || undefined,
+          terms: atsTerms,
+        });
+        break; // Success, exit retry loop
+      } catch (error) {
+        lastError = error;
+        console.error(`Cover letter generation attempt ${attempt + 1} failed:`, error);
+        if (attempt < 1) {
+          // Wait 1 second before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    }
+
+    if (!tailoredLetter) {
+      throw lastError || new Error('Failed to generate cover letter after retries');
+    }
 
     // Validate evidence spans (anti-hallucination)
     const validationResult = validateTailoredCoverLetter(tailoredLetter, {

@@ -18,10 +18,15 @@ const resumeStyles = StyleSheet.create({
     fontSize: 16, // Professional header size
     fontWeight: 'bold',
     textAlign: 'center',
+    marginBottom: 2,
+    letterSpacing: 0.5,
+  },
+  contactInfo: {
+    fontSize: 10,
+    textAlign: 'center',
     marginBottom: 4,
     borderBottom: '2pt solid #000', // Simple horizontal rule (ATS-safe)
     paddingBottom: 4,
-    letterSpacing: 0.5,
   },
   summary: {
     fontSize: 10, // Match body font
@@ -44,21 +49,35 @@ const resumeStyles = StyleSheet.create({
     marginBottom: 4, // Better spacing between experiences
   },
   itemHeader: {
+    marginBottom: 3,
+  },
+  itemFirstLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 2,
-  },
-  itemTitle: {
-    fontSize: 10,
-    fontWeight: 'bold',
+    alignItems: 'flex-start',
+    marginBottom: 1,
   },
   itemOrganization: {
     fontSize: 10,
+    fontWeight: 'bold',
   },
-  itemMeta: {
-    fontSize: 9, // Slightly smaller for metadata
+  itemLocation: {
+    fontSize: 10,
+    textAlign: 'right',
+  },
+  itemSecondLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  itemTitle: {
+    fontSize: 10,
     fontStyle: 'italic',
-    color: '#000', // Black only (ATS requirement)
+  },
+  itemDate: {
+    fontSize: 10,
+    fontStyle: 'italic',
+    textAlign: 'right',
   },
   bulletList: {
     marginLeft: 18, // Standard indent
@@ -109,14 +128,22 @@ const coverLetterStyles = StyleSheet.create({
 });
 
 // Resume PDF Document Component
-export const ResumePDFDocument = ({ resume }: { resume: TailoredResume }) => (
-  <Document>
-    <Page size="A4" style={resumeStyles.page}>
-      <Text style={resumeStyles.name}>{resume.name.toUpperCase()}</Text>
+export const ResumePDFDocument = ({ resume }: { resume: TailoredResume }) => {
+  // Build contact info line (e.g., "email@umich.edu • 734-647-7160 • Ann Arbor, MI")
+  const contactParts = [resume.email, resume.phone, resume.location].filter(Boolean);
+  const contactLine = contactParts.join(' • ');
 
-      {resume.summary && (
-        <Text style={resumeStyles.summary}>{resume.summary}</Text>
-      )}
+  return (
+    <Document>
+      <Page size="A4" style={resumeStyles.page}>
+        <Text style={resumeStyles.name}>{resume.name.toUpperCase()}</Text>
+        {contactLine && (
+          <Text style={resumeStyles.contactInfo}>{contactLine}</Text>
+        )}
+
+        {resume.summary && (
+          <Text style={resumeStyles.summary}>{resume.summary}</Text>
+        )}
 
       {resume.sections.map((section, sectionIdx) => (
         <View key={sectionIdx} style={resumeStyles.section}>
@@ -126,15 +153,24 @@ export const ResumePDFDocument = ({ resume }: { resume: TailoredResume }) => (
             <View key={itemIdx} style={resumeStyles.item}>
               {item.title && (
                 <View style={resumeStyles.itemHeader}>
-                  <View style={{ flexDirection: 'row', flex: 1 }}>
-                    <Text style={resumeStyles.itemTitle}>{item.title}</Text>
-                    {item.organization && (
-                      <Text style={resumeStyles.itemOrganization}> • {item.organization}</Text>
-                    )}
+                  {/* First line: Organization and Location */}
+                  <View style={resumeStyles.itemFirstLine}>
+                    <Text style={resumeStyles.itemOrganization}>
+                      {item.organization || item.title}
+                    </Text>
+                    <Text style={resumeStyles.itemLocation}>
+                      {item.location}
+                    </Text>
                   </View>
-                  <Text style={resumeStyles.itemMeta}>
-                    {item.location} {item.dateRange}
-                  </Text>
+                  {/* Second line: Title (Role) and Date */}
+                  <View style={resumeStyles.itemSecondLine}>
+                    <Text style={resumeStyles.itemTitle}>
+                      {item.organization ? item.title : ''}
+                    </Text>
+                    <Text style={resumeStyles.itemDate}>
+                      {item.dateRange}
+                    </Text>
+                  </View>
                 </View>
               )}
 
@@ -154,7 +190,8 @@ export const ResumePDFDocument = ({ resume }: { resume: TailoredResume }) => (
       ))}
     </Page>
   </Document>
-);
+  );
+};
 
 // Cover Letter PDF Document Component
 export const CoverLetterPDFDocument = ({ letter }: { letter: TailoredCoverLetter }) => (
