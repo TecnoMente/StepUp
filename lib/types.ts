@@ -31,6 +31,8 @@ export interface TailoredResume {
   email?: string;
   phone?: string;
   location?: string;
+  linkedin?: string;
+  github?: string;
   summary?: string;
   sections: ResumeSection[];
   matched_term_count: number;

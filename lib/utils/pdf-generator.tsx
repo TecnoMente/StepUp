@@ -1,6 +1,6 @@
 // PDF Generation using @react-pdf/renderer
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, renderToBuffer } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Link, renderToBuffer } from '@react-pdf/renderer';
 import type { TailoredResume, TailoredCoverLetter } from '@/lib/types';
 
 // ATS-COMPLIANT Resume PDF Styles - BALANCED FOR APPEARANCE & ONE-PAGE FIT
@@ -18,15 +18,18 @@ const resumeStyles = StyleSheet.create({
     fontSize: 16, // Professional header size
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 2,
+    marginBottom: 6, // Increased spacing for readability
     letterSpacing: 0.5,
   },
   contactInfo: {
     fontSize: 10,
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 6, // Increased spacing before border
     borderBottom: '2pt solid #000', // Simple horizontal rule (ATS-safe)
-    paddingBottom: 4,
+    paddingBottom: 6, // Increased padding for breathing room
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
   },
   summary: {
     fontSize: 10, // Match body font
@@ -129,17 +132,51 @@ const coverLetterStyles = StyleSheet.create({
 
 // Resume PDF Document Component
 export const ResumePDFDocument = ({ resume }: { resume: TailoredResume }) => {
-  // Build contact info line (e.g., "email@umich.edu • 734-647-7160 • Ann Arbor, MI")
-  const contactParts = [resume.email, resume.phone, resume.location].filter(Boolean);
-  const contactLine = contactParts.join(' • ');
-
   return (
     <Document>
       <Page size="A4" style={resumeStyles.page}>
         <Text style={resumeStyles.name}>{resume.name.toUpperCase()}</Text>
-        {contactLine && (
-          <Text style={resumeStyles.contactInfo}>{contactLine}</Text>
-        )}
+
+        {/* Contact Info with clickable links */}
+        <View style={resumeStyles.contactInfo}>
+          {resume.email && (
+            <>
+              <Text>{resume.email}</Text>
+              {(resume.phone || resume.location || resume.linkedin || resume.github) && <Text> • </Text>}
+            </>
+          )}
+          {resume.phone && (
+            <>
+              <Text>{resume.phone}</Text>
+              {(resume.location || resume.linkedin || resume.github) && <Text> • </Text>}
+            </>
+          )}
+          {resume.location && (
+            <>
+              <Text>{resume.location}</Text>
+              {(resume.linkedin || resume.github) && <Text> • </Text>}
+            </>
+          )}
+          {resume.linkedin && (
+            <>
+              <Link
+                src={resume.linkedin.startsWith('http') ? resume.linkedin : `https://${resume.linkedin}`}
+                style={{ color: '#000', textDecoration: 'none' }}
+              >
+                {resume.linkedin.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+              </Link>
+              {resume.github && <Text> • </Text>}
+            </>
+          )}
+          {resume.github && (
+            <Link
+              src={resume.github.startsWith('http') ? resume.github : `https://${resume.github}`}
+              style={{ color: '#000', textDecoration: 'none' }}
+            >
+              {resume.github.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+            </Link>
+          )}
+        </View>
 
         {resume.summary && (
           <Text style={resumeStyles.summary}>{resume.summary}</Text>
