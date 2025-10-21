@@ -32,19 +32,29 @@ function CoverLetterPageContent() {
   }, [sessionId, router]);
 
   const handleDownloadLetter = async () => {
-    if (isEditing && letter) {
-      // Save edited cover letter before downloading
-      try {
-        await fetch(`/api/session/${sessionId}`, {
+    try {
+      // Always save current cover letter state before downloading
+      if (letter) {
+        const response = await fetch(`/api/session/${sessionId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ letterJson: JSON.stringify(letter) }),
         });
-      } catch (error) {
-        console.error('Error saving cover letter:', error);
+
+        if (!response.ok) {
+          throw new Error('Failed to save cover letter');
+        }
+
+        // Wait a moment for database to commit
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
+
+      // Trigger download
+      window.location.href = `/api/download/cover-letter?sessionId=${sessionId}`;
+    } catch (error) {
+      console.error('Error saving cover letter:', error);
+      alert('Failed to save changes. Please try again.');
     }
-    window.location.href = `/api/download/cover-letter?sessionId=${sessionId}`;
   };
 
   const handleEditToggle = () => {

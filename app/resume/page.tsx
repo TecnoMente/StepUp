@@ -33,19 +33,29 @@ function ResumePageContent() {
   }, [sessionId, router]);
 
   const handleDownloadResume = async () => {
-    if (isEditing && resume) {
-      // Save edited resume before downloading
-      try {
-        await fetch(`/api/session/${sessionId}`, {
+    try {
+      // Always save current resume state before downloading
+      if (resume) {
+        const response = await fetch(`/api/session/${sessionId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ resumeJson: JSON.stringify(resume) }),
         });
-      } catch (error) {
-        console.error('Error saving resume:', error);
+
+        if (!response.ok) {
+          throw new Error('Failed to save resume');
+        }
+
+        // Wait a moment for database to commit
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
+
+      // Trigger download
+      window.location.href = `/api/download/resume?sessionId=${sessionId}`;
+    } catch (error) {
+      console.error('Error saving resume:', error);
+      alert('Failed to save changes. Please try again.');
     }
-    window.location.href = `/api/download/resume?sessionId=${sessionId}`;
   };
 
   const handleEditToggle = () => {
