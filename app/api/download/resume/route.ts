@@ -1,7 +1,7 @@
-// GET /api/download/resume?sessionId=... - Download resume as HTML (print to PDF)
+// GET /api/download/resume?sessionId=... - Download resume as PDF
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/utils/db';
-import { generateResumeHTML } from '@/lib/utils/pdf-gen';
+import { generateResumePDF } from '@/lib/utils/pdf-generator';
 import type { TailoredResume } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -25,12 +25,17 @@ export async function GET(request: NextRequest) {
     }
 
     const resume = JSON.parse(session.resumeJson) as TailoredResume;
-    const html = generateResumeHTML(resume, resume.name);
 
-    return new NextResponse(html, {
+    // Generate PDF buffer
+    const pdfBuffer = await generateResumePDF(resume);
+
+    // Create a safe filename from the user's name
+    const safeFileName = resume.name.replace(/[^a-zA-Z0-9]/g, '_');
+
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
-        'Content-Type': 'text/html',
-        'Content-Disposition': 'inline; filename="resume.html"',
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${safeFileName}_Resume.pdf"`,
       },
     });
   } catch (error) {
