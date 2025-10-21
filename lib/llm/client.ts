@@ -141,6 +141,14 @@ export class LLMClient {
                 type: 'string',
                 description: 'City and state location (extract from the resume)',
               },
+              linkedin: {
+                type: 'string',
+                description: 'LinkedIn profile URL (extract from the resume if present, do not fabricate)',
+              },
+              github: {
+                type: 'string',
+                description: 'GitHub profile URL (extract from the resume if present, do not fabricate)',
+              },
               summary: {
                 type: 'string',
                 description: 'Optional professional summary',
@@ -400,10 +408,11 @@ ${input.terms.join(', ')}
    - Leadership/Activities: Include if space permits and relevant
 
 6. **FACTUAL ACCURACY (ZERO FABRICATION):**
-   - Extract candidate's full name, email, phone, and location from resume text
+   - Extract candidate's full name, email, phone, location, LinkedIn, and GitHub URLs ONLY if present in resume
    - Use ONLY facts from provided documents
    - For EVERY bullet, cite evidence_spans with exact character offsets
-   - NEVER invent: employers, roles, dates, locations, credentials, numbers, projects
+   - NEVER invent: employers, roles, dates, locations, credentials, numbers, projects, contact info
+   - If contact info (LinkedIn, GitHub, phone, etc.) is not in the resume, leave those fields empty
    - If you can't find evidence for a claim, DON'T include it
 
 **VALIDATION CHECKLIST (before returning):**
