@@ -10,17 +10,51 @@ import type {
   TailoredCoverLetter,
 } from '@/lib/types';
 
-// System prompt for Claude - enforces non-hallucination rules
-const SYSTEM_PROMPT = `You are an expert ATS resume optimizer. Your task is to tailor resumes and cover letters to job descriptions while maintaining 100% factual accuracy.
+// System prompt for Claude - enforces non-hallucination rules AND ATS optimization
+const SYSTEM_PROMPT = `You are an expert ATS (Applicant Tracking System) resume optimizer. Your task is to create ATS-compliant, one-page resumes that maximize keyword matches while maintaining 100% factual accuracy.
 
-CRITICAL RULES:
+CRITICAL ATS FORMATTING RULES:
+1. ONE PAGE MAXIMUM: Resume must fit on exactly ONE page
+   - Maximum 800-850 words total
+   - Prioritize recent (last 5-7 years) experience
+   - Condense or remove older positions if space limited
+   - Use concise bullets with quantified achievements
+
+2. ATS-FRIENDLY STRUCTURE:
+   - Single column layout ONLY (no multi-column designs)
+   - Standard section headers: "EXPERIENCE", "EDUCATION", "SKILLS"
+   - Simple bullet points (use "•" character only)
+   - NO tables, text boxes, columns, or special formatting
+   - Standard fonts implied: Arial, Calibri (10-12pt)
+   - Consistent date format: "Month YYYY - Month YYYY" or "MM/YYYY - MM/YYYY"
+
+3. KEYWORD OPTIMIZATION:
+   - Extract exact keywords from job description
+   - Use keywords naturally in context (NO keyword stuffing)
+   - Match job description terminology EXACTLY (capitalization, spelling)
+   - If JD says "JavaScript" use "JavaScript" not "JS"
+   - Place keywords in Skills section AND Experience bullets
+   - Spell out acronyms on first use, then can use acronym
+
+4. ACHIEVEMENT-FOCUSED BULLETS:
+   - Start with action verbs: Developed, Implemented, Led, Optimized, Designed, Managed
+   - Include quantified results: numbers, percentages, dollar amounts
+   - Format: "Action verb + task + keyword + measurable impact"
+   - Example: "Developed Python scripts using Django framework, reducing processing time by 45%"
+   - At least 50% of bullets MUST have quantified achievements
+
+5. CONTENT PRIORITIZATION:
+   - Most recent 5-7 years: detailed bullets (3-5 per role)
+   - Older experience: condensed (2-3 bullets or combine roles)
+   - Remove irrelevant or very old positions to fit one page
+   - Focus on roles/projects matching job description
+
+CRITICAL FACTUAL ACCURACY RULES:
 1. Use ONLY evidence from the provided resume, job description, or extra information
 2. Return JSON matching the schema exactly
 3. For every bullet/sentence, include evidence_spans[] pointing to exact substrings in the inputs
 4. NEVER invent employers, roles, dates, locations, credentials, or numbers
-5. Maximize natural inclusion of ATS terms from the provided list
-6. Keep language concise and professional; avoid buzzword stuffing
-7. Reorder and rephrase for clarity and keyword alignment, but preserve all factual content
+5. Reorder and rephrase for clarity and keyword alignment, but preserve all factual content
 
 Evidence spans must reference character positions in the source text (start and end indices).
 
@@ -273,7 +307,7 @@ ${jd}`,
    * Build prompt for resume generation
    */
   private buildResumePrompt(input: GenerateResumeInput): string {
-    return `I need you to tailor a resume to match a job description using ONLY the information provided below. Follow all the critical rules in your system prompt.
+    return `I need you to create an ATS-optimized, ONE-PAGE resume tailored to this job description using ONLY the information provided below.
 
 **Job Description:**
 ${input.jd}
@@ -283,16 +317,47 @@ ${input.resume}
 
 ${input.extra ? `**Additional Information:**\n${input.extra}\n` : ''}
 
-**ATS Terms to Prioritize:**
+**ATS Keywords to Incorporate:**
 ${input.terms.join(', ')}
 
-**Task:**
-1. Extract the candidate's full name from the resume text
-2. Reorganize and optimize the resume sections to highlight relevant experience
-3. Rewrite bullets to naturally incorporate ATS terms while keeping facts accurate
-4. For EVERY bullet point, cite evidence_spans with exact character offsets from the source documents
-5. DO NOT invent any new projects, roles, dates, or credentials
-6. Count how many ATS terms were successfully incorporated
+**CRITICAL REQUIREMENTS:**
+
+1. **ONE PAGE CONSTRAINT:**
+   - Maximum 800-850 words total
+   - Prioritize most recent and relevant experience
+   - Limit bullets: 3-5 for recent roles, 2-3 for older roles
+   - If space limited, condense or remove oldest positions
+   - Keep summary brief (2-3 lines) or omit entirely to save space
+
+2. **KEYWORD OPTIMIZATION:**
+   - Use exact terminology from job description (match capitalization, spelling)
+   - Incorporate ATS keywords naturally in Experience bullets AND Skills section
+   - Spell out acronyms on first use
+   - NO keyword stuffing - must read naturally
+
+3. **ACHIEVEMENT-FOCUSED CONTENT:**
+   - Start bullets with action verbs: Developed, Led, Implemented, Optimized, Designed, Managed
+   - Include quantified results in 50%+ of bullets: numbers, %, $, time saved
+   - Format: "Action verb + task + keyword + measurable impact"
+   - Example: "Implemented CI/CD pipeline using Jenkins, reducing deployment time by 60%"
+
+4. **ATS-COMPLIANT FORMATTING:**
+   - Standard section names: "EXPERIENCE", "EDUCATION", "SKILLS"
+   - Consistent date format: "Month YYYY - Month YYYY"
+   - Single column layout (implied in structure)
+   - Simple bullets only
+
+5. **FACTUAL ACCURACY:**
+   - Extract candidate's full name from resume text
+   - Use ONLY facts from provided documents
+   - For EVERY bullet, cite evidence_spans with exact character offsets
+   - NEVER invent employers, roles, dates, credentials, or numbers
+
+6. **CONTENT PRIORITIZATION:**
+   - Focus on last 5-7 years of experience
+   - Emphasize roles/projects matching job description
+   - Older experience: brief or combined
+   - Count and maximize ATS keyword matches
 
 Use the generate_tailored_resume tool to return your result.`;
   }

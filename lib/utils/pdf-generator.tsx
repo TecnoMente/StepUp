@@ -3,71 +3,75 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet, renderToBuffer } from '@react-pdf/renderer';
 import type { TailoredResume, TailoredCoverLetter } from '@/lib/types';
 
-// Create styles for resume PDF - optimized to fit on ONE page
+// ATS-COMPLIANT Resume PDF Styles - Optimized for ONE page
+// Following ATS best practices: single column, standard fonts, simple formatting
 const resumeStyles = StyleSheet.create({
   page: {
-    padding: '0.35in 0.45in',
-    fontSize: 8,
-    fontFamily: 'Helvetica',
-    lineHeight: 1.25,
+    padding: '0.5in 0.5in', // ATS-compliant margins (0.5-0.75in recommended)
+    fontSize: 10, // ATS-compliant base font size (10-12pt)
+    fontFamily: 'Helvetica', // ATS-safe font (Arial/Calibri/Helvetica)
+    lineHeight: 1.15, // ATS-recommended line spacing (1.0-1.15)
+    color: '#000000', // Black text only (ATS requirement)
   },
   name: {
-    fontSize: 16,
+    fontSize: 16, // Prominent but not excessive
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 3,
-    borderBottom: '2pt solid #000',
-    paddingBottom: 3,
+    marginBottom: 4,
+    borderBottom: '1.5pt solid #000', // Simple horizontal rule (ATS-safe)
+    paddingBottom: 4,
+    letterSpacing: 0.5,
   },
   summary: {
-    fontSize: 7.5,
-    textAlign: 'center',
-    fontStyle: 'italic',
-    marginBottom: 5,
-    color: '#333',
+    fontSize: 10, // Same as body for consistency
+    textAlign: 'left', // Left-align for ATS parsing
+    marginBottom: 8,
+    lineHeight: 1.15,
   },
   section: {
-    marginBottom: 5,
+    marginBottom: 6, // Compact spacing for one-page constraint
   },
   sectionTitle: {
-    fontSize: 9,
+    fontSize: 11, // Slightly larger than body (ATS-compliant)
     fontWeight: 'bold',
-    borderBottom: '1pt solid #333',
-    marginBottom: 2,
-    paddingBottom: 1,
+    borderBottom: '1pt solid #000', // Simple divider (ATS-safe)
+    marginBottom: 3,
+    paddingBottom: 2,
+    textTransform: 'uppercase', // Standard section headers
   },
   item: {
-    marginBottom: 3,
+    marginBottom: 4, // Compact but readable
   },
   itemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 1,
+    marginBottom: 2,
   },
   itemTitle: {
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: 'bold',
   },
   itemOrganization: {
-    fontSize: 8,
+    fontSize: 10,
   },
   itemMeta: {
-    fontSize: 7,
+    fontSize: 9,
     fontStyle: 'italic',
-    color: '#555',
+    color: '#000', // Black only (ATS requirement)
   },
   bulletList: {
-    marginLeft: 12,
-    marginTop: 1,
+    marginLeft: 18, // Standard indent
+    marginTop: 2,
   },
   bullet: {
-    fontSize: 7.5,
-    marginBottom: 0.8,
+    fontSize: 10, // Same as body (ATS-compliant)
+    marginBottom: 1.5,
     flexDirection: 'row',
+    lineHeight: 1.15,
   },
   bulletText: {
     flex: 1,
-    paddingLeft: 2,
+    paddingLeft: 4,
   },
 });
 
