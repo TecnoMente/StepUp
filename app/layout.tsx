@@ -17,7 +17,7 @@ export default function RootLayout({
         <nav className="bg-teal-900/50 backdrop-blur-sm border-b border-teal-800">
           <div className="container-custom py-4 flex justify-between items-center">
             <a href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <img src="/logo.png" alt="StepUp Logo" className="h-10 w-10" />
+              <img src="/beige_logo.png" alt="StepUp Logo" className="h-10 w-10" />
               <span className="text-2xl font-serif font-bold text-beige-50">StepUp</span>
             </a>
             <div className="flex gap-6 text-beige-50">

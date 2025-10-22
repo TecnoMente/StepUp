@@ -12,9 +12,10 @@
     --ink-700: #2a2f33;
   }
 
-  body {
-    @apply bg-gradient-to-br from-teal-900 to-teal-800 text-ink-900 min-h-screen font-sans;
-  }
+body {
+  @apply bg-gradient-to-br from-[#11686e] via-[#0a3f44] to-[#021c1e] text-ink-900 min-h-screen font-sans;
+}
+
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif;
