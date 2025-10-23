@@ -8,7 +8,6 @@ export default function HomePage() {
   const [jobDescription, setJobDescription] = useState('');
   const [extraInfo, setExtraInfo] = useState('');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [loadingAction, setLoadingAction] = useState<null | 'resume' | 'cover'>(null);
   const [error, setError] = useState('');
 
@@ -32,7 +31,6 @@ export default function HomePage() {
       return;
     }
 
-  setIsLoading(true);
   setLoadingAction('resume');
 
     try {
@@ -83,7 +81,6 @@ export default function HomePage() {
       console.error('Error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
-      setIsLoading(false);
       setLoadingAction(null);
     }
   };
@@ -187,7 +184,6 @@ export default function HomePage() {
                 return;
               }
 
-              setIsLoading(true);
               setLoadingAction('cover');
               try {
                 // Create session
@@ -237,7 +233,6 @@ export default function HomePage() {
                 console.error('Error generating cover letter:', err);
                 setError(err instanceof Error ? err.message : 'An error occurred');
               } finally {
-                setIsLoading(false);
                 setLoadingAction(null);
               }
             }}
