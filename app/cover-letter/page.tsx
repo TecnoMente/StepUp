@@ -118,35 +118,37 @@ function CoverLetterPageContent() {
               {isEditing ? 'Done Editing' : 'Edit Cover Letter'}
             </button>
           </div>
-          <div className="max-h-[600px] overflow-y-auto prose prose-sm max-w-none">
-            <div
-              contentEditable={isEditing}
-              suppressContentEditableWarning
-              onBlur={(e) => updateLetterField('salutation', e.currentTarget.textContent || '')}
-              className="mb-6 focus:outline-none focus:bg-beige-100"
-            >
-              {letter.salutation}
-            </div>
-
-            {letter.paragraphs.map((paragraph, idx) => (
-              <p
-                key={idx}
+          <div className="max-h-[600px] overflow-y-auto">
+            <div className="bg-white rounded-lg shadow-lg p-8 prose prose-sm max-w-none">
+              <div
                 contentEditable={isEditing}
                 suppressContentEditableWarning
-                onBlur={(e) => updateParagraph(idx, e.currentTarget.textContent || '')}
-                className="mb-4 text-justify focus:outline-none focus:bg-beige-100"
+                onBlur={(e) => updateLetterField('salutation', e.currentTarget.textContent || '')}
+                className="mb-6 focus:outline-none focus:bg-beige-100 pr-8"
               >
-                {paragraph.text}
-              </p>
-            ))}
+                {letter.salutation}
+              </div>
 
-            <div
-              contentEditable={isEditing}
-              suppressContentEditableWarning
-              onBlur={(e) => updateLetterField('closing', e.currentTarget.textContent || '')}
-              className="mt-6 whitespace-pre-line focus:outline-none focus:bg-beige-100"
-            >
-              {letter.closing}
+              {letter.paragraphs.map((paragraph, idx) => (
+                <p
+                  key={idx}
+                  contentEditable={isEditing}
+                  suppressContentEditableWarning
+                  onBlur={(e) => updateParagraph(idx, e.currentTarget.textContent || '')}
+                  className="mb-4 text-justify focus:outline-none focus:bg-beige-100 pr-8"
+                >
+                  {paragraph.text}
+                </p>
+              ))}
+
+              <div
+                contentEditable={isEditing}
+                suppressContentEditableWarning
+                onBlur={(e) => updateLetterField('closing', e.currentTarget.textContent || '')}
+                className="mt-6 whitespace-pre-line focus:outline-none focus:bg-beige-100 pr-8"
+              >
+                {letter.closing}
+              </div>
             </div>
           </div>
 
