@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/utils/db';
 import { getLLMClient } from '@/lib/llm/client';
-import { validateTailoredResume, recalculateMatchedTerms } from '@/lib/utils/validation';
+import { validateTailoredResume, recalculateMatchedTerms, tryRepairEvidenceSpans } from '@/lib/utils/validation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,6 +38,13 @@ export async function POST(request: NextRequest) {
       resume: session.resumeText,
       extra: extraText || session.extraText || undefined,
       terms: atsTerms,
+    });
+
+    // Attempt to repair evidence spans if the model produced small indexing mistakes
+    tryRepairEvidenceSpans(tailoredResume, {
+      jd: session.jdText,
+      resume: session.resumeText,
+      extra: extraText || session.extraText || undefined,
     });
 
     // Validate evidence spans (anti-hallucination)

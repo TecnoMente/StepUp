@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/utils/db';
 import { getLLMClient } from '@/lib/llm/client';
-import { validateTailoredCoverLetter } from '@/lib/utils/validation';
+import { validateTailoredCoverLetter, tryRepairEvidenceSpans } from '@/lib/utils/validation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,6 +59,13 @@ export async function POST(request: NextRequest) {
     if (!tailoredLetter) {
       throw lastError || new Error('Failed to generate cover letter after retries');
     }
+
+    // Attempt to repair evidence spans if the model produced small indexing mistakes
+    tryRepairEvidenceSpans(tailoredLetter, {
+      jd: session.jdText,
+      resume: session.resumeText,
+      extra: session.extraText || undefined,
+    });
 
     // Validate evidence spans (anti-hallucination)
     const validationResult = validateTailoredCoverLetter(tailoredLetter, {
