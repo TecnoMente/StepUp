@@ -456,7 +456,20 @@ export async function POST(request: NextRequest) {
 
         // Strategy sequence: 1) limit bullets/item to 3, 2) limit bullets to 2, 3) truncate bullets progressively,
         // 4) merge bullets per item into one, 5) keep only top 3 sections by matched term score, 6) final extreme truncation
-        const strategies = [
+
+        // Define strategy types
+        type Strategy = {
+          name: string;
+          maxBullets?: number;
+          maxChar?: number | null;
+          merge?: boolean;
+          keepSections?: number;
+          pagePadding?: string;
+          nameFontSize?: number;
+          sectionTitleSize?: number;
+        };
+
+        const strategies: Strategy[] = [
           { name: 'limit-3', maxBullets: 3, maxChar: null },
           { name: 'limit-2', maxBullets: 2, maxChar: null },
           { name: 'truncate-120', maxBullets: 2, maxChar: 120 },
@@ -474,16 +487,16 @@ export async function POST(request: NextRequest) {
           for (const sec of candidate.sections) {
             for (const it of sec.items || []) {
               if (Array.isArray(it.bullets) && it.bullets.length > 0) {
-                if ((strat as any).merge) {
+                if (strat.merge) {
                   // merge all bullets into one combined bullet per item
                   const texts = (it.bullets || []).map(b => (b.text || '').trim()).filter(Boolean);
                   const merged = texts.join('; ');
-                  it.bullets = [{ text: truncate(merged, (strat as any).maxChar ?? 400), evidence_spans: [], matched_terms: [] } as ResumeBullet];
+                  it.bullets = [{ text: truncate(merged, strat.maxChar ?? 400), evidence_spans: [], matched_terms: [] } as ResumeBullet];
                 } else {
-                  const maxB = (strat as any).maxBullets ?? it.bullets.length;
+                  const maxB = strat.maxBullets ?? it.bullets.length;
                   it.bullets = (it.bullets || []).slice(0, maxB);
-                  if ((strat as any).maxChar) {
-                    it.bullets = it.bullets.map((b: ResumeBullet) => ({ ...b, text: truncate(b.text || '', (strat as any).maxChar) }));
+                  if (strat.maxChar) {
+                    it.bullets = it.bullets.map((b: ResumeBullet) => ({ ...b, text: truncate(b.text || '', strat.maxChar as number) }));
                   }
                 }
               }
@@ -491,7 +504,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Keep only top N sections by matched-term score if requested
-          if ((strat as any).keepSections) {
+          if (strat.keepSections) {
             const scores = candidate.sections.map((s, idx) => {
               let score = 0;
               for (const it of s.items || []) {
@@ -502,15 +515,15 @@ export async function POST(request: NextRequest) {
               return { idx, score, name: s.name };
             });
             scores.sort((a, b) => b.score - a.score);
-            const keep = new Set(scores.slice(0, (strat as any).keepSections).map(s => s.idx));
+            const keep = new Set(scores.slice(0, strat.keepSections).map(s => s.idx));
             candidate.sections = candidate.sections.filter((_, idx) => keep.has(idx));
           }
 
           // Apply candidate truncation and aggressive opts
           const opts: Partial<ResumePDFOptions> = { ...baseOpts };
-          if ((strat as any).pagePadding) opts.pagePadding = (strat as any).pagePadding;
-          if ((strat as any).nameFontSize) opts.nameFontSize = (strat as any).nameFontSize;
-          if ((strat as any).sectionTitleSize) opts.sectionTitleSize = (strat as any).sectionTitleSize;
+          if (strat.pagePadding) opts.pagePadding = strat.pagePadding;
+          if (strat.nameFontSize) opts.nameFontSize = strat.nameFontSize;
+          if (strat.sectionTitleSize) opts.sectionTitleSize = strat.sectionTitleSize;
 
           const pages = await tryRender(candidate, opts);
           if (pages <= 1) {

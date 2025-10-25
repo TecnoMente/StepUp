@@ -12,6 +12,7 @@ function CoverLetterPageContent() {
   const [letter, setLetter] = useState<TailoredCoverLetter | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [isGeneratingResume, setIsGeneratingResume] = useState(false);
 
   useEffect(() => {
     if (!sessionId) {
@@ -57,8 +58,31 @@ function CoverLetterPageContent() {
     }
   };
 
-  const handleDownloadResume = () => {
-    router.push(`/resume?sessionId=${sessionId}`);
+  const handleDownloadResume = async () => {
+    setIsGeneratingResume(true);
+    try {
+      // First, check if resume already exists in session
+      const sessionRes = await fetch(`/api/session/${sessionId}`);
+      const sessionData = await sessionRes.json();
+
+      // If no resume exists, generate it
+      if (!sessionData.resumeJson) {
+        const res = await fetch('/api/generate/resume', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId }),
+        });
+        if (!res.ok) throw new Error('Failed to generate resume');
+      }
+
+      // Navigate to resume page
+      router.push(`/resume?sessionId=${sessionId}`);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to generate resume');
+    } finally {
+      setIsGeneratingResume(false);
+    }
   };
 
   const handleEditToggle = () => {
@@ -161,8 +185,8 @@ function CoverLetterPageContent() {
             <button onClick={handleDownloadLetter} className="btn-primary flex-1">
               Download Cover Letter (PDF)
             </button>
-            <button onClick={handleDownloadResume} className="btn-primary flex-1">
-              Download Tailored Resume
+            <button onClick={handleDownloadResume} disabled={isGeneratingResume} className="btn-primary flex-1 disabled:opacity-50">
+              {isGeneratingResume ? 'Generating Resume...' : 'Download Tailored Resume'}
             </button>
           </div>
         </div>
