@@ -437,11 +437,11 @@ Use the generate_tailored_resume tool to return your result.`;
    * Build prompt for cover letter generation
    */
   private buildCoverLetterPrompt(input: GenerateCoverLetterInput): string {
-    const aggressive = (input as any).forceOnePage
+    const aggressive = input.forceOnePage
       ? '\n\n**AGGRESSIVE LENGTH CONSTRAINT:** Please condense to fit a single page while preserving factual accuracy and evidence spans. Shorten sentences and reduce paragraphs as necessary.'
       : '';
 
-    const hint = (input as any).hint ? `\n\nHINT FOR THIS ATTEMPT: ${(input as any).hint}` : '';
+    const hint = input.hint ? `\n\nHINT FOR THIS ATTEMPT: ${input.hint}` : '';
 
     return `I need you to write a professional cover letter tailored to a job description using ONLY the information from the resume provided below. Follow all the critical rules in your system prompt.${aggressive}${hint}
 

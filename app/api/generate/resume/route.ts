@@ -1,10 +1,18 @@
 // POST /api/generate/resume - Generate tailored resume
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/utils/db';
+import type { Prisma } from '@prisma/client';
 import { getLLMClient } from '@/lib/llm/client';
 import { validateTailoredResume, recalculateMatchedTerms, tryRepairEvidenceSpans } from '@/lib/utils/validation';
 import { generateResumePDF } from '@/lib/utils/pdf-generator';
 import pdf from 'pdf-parse';
+import type { TailoredResume, ResumeBullet, ResumeSection, ResumeItem } from '@/lib/types';
+import type { ResumePDFOptions } from '@/lib/utils/pdf-generator';
+
+// Minimal typing for pdf-parse result
+interface PDFParseResult {
+  numpages?: number;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,29 +78,28 @@ export async function POST(request: NextRequest) {
 
     // Now attempt to render PDF and ensure it fits on one page.
     // We'll allow a few retries where we ask the LLM to aggressively condense if needed.
-    let finalResume = tailoredResume;
+    let finalResume = tailoredResume as TailoredResume;
     const maxAttempts = 3;
     let lastPageCount = 0;
-    let finalPdfOptions: any = {}; // Track PDF options that successfully fit one page
+    let finalPdfOptions: Partial<ResumePDFOptions> = {}; // Track PDF options that successfully fit one page
 
-    const sanitizeForRender = (r: any) => {
+    const sanitizeForRender = (r: unknown): TailoredResume => {
       try {
-        const copy = JSON.parse(JSON.stringify(r));
+        const copy = JSON.parse(JSON.stringify(r)) as TailoredResume;
         if (copy && typeof copy === 'object') delete copy.summary;
         return copy;
-      } catch (e) {
-        return r;
+      } catch {
+        return r as TailoredResume;
       }
     };
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
   const buffer = await generateResumePDF(sanitizeForRender(finalResume));
-        // Use pdf-parse to inspect number of pages
-        // pdf() returns an object with numpages
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const data: any = await pdf(buffer as Buffer);
-        lastPageCount = data.numpages || 0;
+    // Use pdf-parse to inspect number of pages
+    // pdf() returns an object with numpages
+    const data = (await pdf(buffer as Buffer)) as PDFParseResult;
+    lastPageCount = data.numpages ?? 0;
 
         if (lastPageCount <= 1) {
           // success
@@ -162,12 +169,11 @@ export async function POST(request: NextRequest) {
         try {
           const opts = { bodyFontSize: fs };
           const buf = await generateResumePDF(sanitizeForRender(finalResume), opts);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const data: any = await pdf(buf as Buffer);
-          if ((data.numpages || 0) <= 1) {
+          const data = (await pdf(buf as Buffer)) as PDFParseResult;
+          if ((data.numpages ?? 0) <= 1) {
             fitted = true;
-            lastPageCount = data.numpages || 0;
-            finalPdfOptions = opts; // Save the options that worked
+            lastPageCount = data.numpages ?? 0;
+            finalPdfOptions = opts as Partial<ResumePDFOptions>; // Save the options that worked
             break;
           }
         } catch (e) {
@@ -235,9 +241,8 @@ export async function POST(request: NextRequest) {
           // Render at smallest font (8pt)
           try {
             const buf2 = await generateResumePDF(sanitizeForRender(clone), { bodyFontSize: 8 });
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const data2: any = await pdf(buf2 as Buffer);
-            lastPageCount = data2.numpages || 0;
+            const data2 = (await pdf(buf2 as Buffer)) as PDFParseResult;
+            lastPageCount = data2.numpages ?? 0;
             if (lastPageCount <= 1) {
               finalResume = clone;
               fitted = true;
@@ -254,18 +259,17 @@ export async function POST(request: NextRequest) {
 
       // Additional aggressive deterministic attempts: reduce name/section font, lineHeight, padding
       if (!fitted) {
-        const aggressiveOpts = { bodyFontSize: 8, nameFontSize: 12, sectionTitleSize: 9, pagePadding: '0.125in 0.125in', lineHeight: 1.0 } as any;
+        const aggressiveOpts: Partial<ResumePDFOptions> = { bodyFontSize: 8, nameFontSize: 12, sectionTitleSize: 9, pagePadding: '0.125in 0.125in', lineHeight: 1.0 };
         try {
           const bufA = await generateResumePDF(finalResume, aggressiveOpts);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const dataA: any = await pdf(bufA as Buffer);
-          if ((dataA.numpages || 0) <= 1) {
+          const dataA = (await pdf(bufA as Buffer)) as PDFParseResult;
+          if ((dataA.numpages ?? 0) <= 1) {
             fitted = true;
-            lastPageCount = dataA.numpages || 0;
+            lastPageCount = dataA.numpages ?? 0;
             finalPdfOptions = aggressiveOpts; // Save aggressive options
           }
-        } catch (e) {
-          console.error('Aggressive render error', e);
+        } catch (err) {
+          console.error('Aggressive render error', err);
         }
       }
 
@@ -273,11 +277,11 @@ export async function POST(request: NextRequest) {
       if (!fitted) {
         const clone3 = JSON.parse(JSON.stringify(finalResume)) as typeof finalResume;
 
-        const collectItemBullets = (r: typeof clone3) => {
-          const list: { sectionIdx: number; itemIdx: number; bullets: any[] }[] = [];
+        const collectItemBullets = (r: TailoredResume) => {
+          const list: { sectionIdx: number; itemIdx: number; bullets: ResumeBullet[] }[] = [];
           r.sections.forEach((s, si) => {
             (s.items || []).forEach((it, ii) => {
-              const bs = (it.bullets || []).map((b: any, bi: number) => ({ ...b, _idx: bi }));
+              const bs: ResumeBullet[] = (it.bullets || []) as ResumeBullet[];
               if (bs.length >= 2) list.push({ sectionIdx: si, itemIdx: ii, bullets: bs });
             });
           });
@@ -287,7 +291,7 @@ export async function POST(request: NextRequest) {
         let madeChange = true;
         while (!fitted && madeChange) {
           madeChange = false;
-          const candidates = collectItemBullets(clone3).map(c => ({ ...c, leastRelevance: c.bullets.reduce((acc, b: any) => acc + (Array.isArray(b.matched_terms) ? b.matched_terms.length : 0), 0) }));
+          const candidates = collectItemBullets(clone3).map(c => ({ ...c, leastRelevance: c.bullets.reduce((acc, b: ResumeBullet) => acc + (Array.isArray(b.matched_terms) ? b.matched_terms.length : 0), 0) }));
           // sort by least total relevance
           candidates.sort((a, b) => a.leastRelevance - b.leastRelevance);
           if (candidates.length === 0) break;
@@ -298,8 +302,8 @@ export async function POST(request: NextRequest) {
           if (!it || !it.bullets || it.bullets.length < 2) break;
 
           // find two least-relevant bullets and merge them
-          const bulletsWithRel = it.bullets.map((b: any, idx: number) => ({ idx, rel: Array.isArray(b.matched_terms) ? b.matched_terms.length : 0 }));
-          bulletsWithRel.sort((a: any, b: any) => a.rel - b.rel);
+          const bulletsWithRel = it.bullets.map((b: ResumeBullet, idx: number) => ({ idx, rel: Array.isArray(b.matched_terms) ? b.matched_terms.length : 0 }));
+          bulletsWithRel.sort((a, b) => a.rel - b.rel);
           const first = bulletsWithRel[0].idx;
           const second = bulletsWithRel[1].idx > first ? bulletsWithRel[1].idx : bulletsWithRel[1].idx;
           const b1 = it.bullets[first];
@@ -333,9 +337,8 @@ export async function POST(request: NextRequest) {
           try {
             const mergeOpts = { bodyFontSize: 8, nameFontSize: 12, sectionTitleSize: 9, pagePadding: '0.125in 0.125in', lineHeight: 1.0 };
             const buf5 = await generateResumePDF(clone3, mergeOpts);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const data5: any = await pdf(buf5 as Buffer);
-            lastPageCount = data5.numpages || 0;
+            const data5 = (await pdf(buf5 as Buffer)) as PDFParseResult;
+            lastPageCount = data5.numpages ?? 0;
             if (lastPageCount <= 1) {
               finalResume = clone3;
               fitted = true;
@@ -352,10 +355,10 @@ export async function POST(request: NextRequest) {
       if (!fitted) {
         const clone2 = JSON.parse(JSON.stringify(finalResume)) as typeof finalResume;
         // Score sections by total matched terms
-        const sectionScore = (s: any) => {
+        const sectionScore = (s: ResumeSection) => {
           let score = 0;
-          (s.items || []).forEach((it: any) => {
-            (it.bullets || []).forEach((b: any) => {
+          (s.items || []).forEach((it: ResumeItem) => {
+            (it.bullets || []).forEach((b: ResumeBullet) => {
               score += (Array.isArray(b.matched_terms) ? b.matched_terms.length : 0);
             });
           });
@@ -363,7 +366,7 @@ export async function POST(request: NextRequest) {
         };
 
         // Build list of removable section indices, prefer non-Experience
-        let secIdxs = clone2.sections.map((s: any, idx: number) => ({ idx, name: s.name, score: sectionScore(s) }));
+        const secIdxs = clone2.sections.map((s: ResumeSection, idx: number) => ({ idx, name: s.name, score: sectionScore(s) }));
         // Sort by score ascending and deprioritize 'Experience' and 'Education'
         secIdxs.sort((a, b) => {
           const aPriority = a.name === 'Experience' || a.name === 'Education' ? 1 : 0;
@@ -398,9 +401,8 @@ export async function POST(request: NextRequest) {
 
           try {
             const buf3 = await generateResumePDF(sanitizeForRender(clone2), { bodyFontSize: 8 });
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const data3: any = await pdf(buf3 as Buffer);
-            lastPageCount = data3.numpages || 0;
+            const data3 = (await pdf(buf3 as Buffer)) as PDFParseResult;
+            lastPageCount = data3.numpages ?? 0;
             if (lastPageCount <= 1) {
               finalResume = clone2;
               fitted = true;
@@ -417,9 +419,8 @@ export async function POST(request: NextRequest) {
         try {
           const finalOpts = { bodyFontSize: 8, pagePadding: '0.25in 0.25in' };
           const buf4 = await generateResumePDF(sanitizeForRender(finalResume), finalOpts);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const data4: any = await pdf(buf4 as Buffer);
-          lastPageCount = data4.numpages || 0;
+          const data4 = (await pdf(buf4 as Buffer)) as PDFParseResult;
+          lastPageCount = data4.numpages ?? 0;
           if (lastPageCount <= 1) {
             fitted = true;
             finalPdfOptions = finalOpts; // Save final fallback options
@@ -438,8 +439,10 @@ export async function POST(request: NextRequest) {
 
     // Ensure we follow UMich format: do not include a top summary in the saved/rendered resume
     try {
-      if (finalResume && typeof finalResume === 'object') delete (finalResume as any).summary;
-    } catch (e) {
+      if (finalResume && typeof finalResume === 'object') {
+        delete (finalResume as Partial<TailoredResume>).summary;
+      }
+    } catch {
       // ignore
     }
 
@@ -449,12 +452,13 @@ export async function POST(request: NextRequest) {
 
     await prisma.session.update({
       where: { id: sessionId },
+      // Use generated Prisma type for update payload to avoid 'any'
       data: {
         resumeJson: JSON.stringify(finalResume),
         extraText: extraText || session.extraText,
         atsScore: actualMatchedCount,
         resumePdfOptions: JSON.stringify(finalPdfOptions), // Save PDF options for consistent rendering
-      },
+      } as Prisma.SessionUpdateInput,
     });
 
     return NextResponse.json(finalResume);

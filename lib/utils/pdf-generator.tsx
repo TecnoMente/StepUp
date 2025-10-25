@@ -3,7 +3,7 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Link, renderToBuffer } from '@react-pdf/renderer';
 import type { TailoredResume, TailoredCoverLetter } from '@/lib/types';
 
-type ResumePDFOptions = {
+export type ResumePDFOptions = {
   bodyFontSize?: number; // default 10
   nameFontSize?: number; // default 16
   sectionTitleSize?: number; // default 11

@@ -158,7 +158,7 @@ export function tryRepairEvidenceSpans(
       // Try to find the textCandidate in the source text
       const needle = (textCandidate || '').toString().trim();
       if (needle) {
-        let idx = sourceText.indexOf(needle);
+        const idx = sourceText.indexOf(needle);
         if (idx >= 0) {
           span.start = idx;
           span.end = idx + needle.length;
@@ -170,8 +170,7 @@ export function tryRepairEvidenceSpans(
 
         // If exact match not found, try searching for any matched term inside the source
         // (useful when the model provided a long span that contains known keywords)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const parent = (spans as any)._parent || null;
+        // If available, parent metadata may be attached to spans for context
       }
 
       // Fallback: try to find any short substring of the needle
@@ -188,8 +187,7 @@ export function tryRepairEvidenceSpans(
       }
 
       // Try matched_terms if available on the parent bullet/paragraph
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const maybeParent: any = (spans as any).__parent || undefined;
+  const maybeParent = (spans as unknown as { __parent?: { matched_terms?: string[] } }).__parent;
       if (maybeParent && Array.isArray(maybeParent.matched_terms)) {
         for (const term of maybeParent.matched_terms) {
           if (!term || typeof term !== 'string') continue;
