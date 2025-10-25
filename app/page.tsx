@@ -8,7 +8,7 @@ export default function HomePage() {
   const [jobDescription, setJobDescription] = useState('');
   const [extraInfo, setExtraInfo] = useState('');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<null | 'resume' | 'cover'>(null);
   const [error, setError] = useState('');
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,7 +31,7 @@ export default function HomePage() {
       return;
     }
 
-    setIsLoading(true);
+  setLoadingAction('resume');
 
     try {
       // Create session
@@ -81,7 +81,7 @@ export default function HomePage() {
       console.error('Error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
-      setIsLoading(false);
+      setLoadingAction(null);
     }
   };
 
@@ -155,14 +155,99 @@ export default function HomePage() {
 
           <button
             onClick={handleGenerateResume}
-            disabled={isLoading || !resumeFile}
+            disabled={(loadingAction !== null) || !resumeFile}
             className={`btn-primary w-full transition-all ${
               !resumeFile
+                ? 'opacity-40 cursor-not-allowed bg-gray-400'
+                : loadingAction === 'resume'
+                ? 'opacity-100 hover:bg-gold-400'
+                : loadingAction === 'cover'
                 ? 'opacity-40 cursor-not-allowed bg-gray-400'
                 : 'opacity-100 hover:bg-gold-400'
             }`}
           >
-            {isLoading ? 'Generating...' : 'Generate Tailored Resume'}
+            {loadingAction === 'resume' ? 'Generating...' : 'Generate Tailored Resume'}
+          </button>
+          {/* Generate Cover Letter button */}
+          <button
+            onClick={async () => {
+              // Reuse the same validation as resume generation
+              setError('');
+
+              if (!jobDescription.trim()) {
+                setError('Please enter a job description');
+                return;
+              }
+
+              if (!resumeFile) {
+                setError('Please upload your resume (PDF)');
+                return;
+              }
+
+              setLoadingAction('cover');
+              try {
+                // Create session
+                const sessionRes = await fetch('/api/session', { method: 'POST' });
+                const { sessionId } = await sessionRes.json();
+
+                // Upload resume
+                const formData = new FormData();
+                formData.append('sessionId', sessionId);
+                formData.append('file', resumeFile);
+
+                const uploadRes = await fetch('/api/upload', {
+                  method: 'POST',
+                  body: formData,
+                });
+
+                if (!uploadRes.ok) {
+                  throw new Error('Failed to upload resume');
+                }
+
+                // Extract ATS terms
+                const termsRes = await fetch('/api/generate/ats-terms', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ sessionId, jobDescription }),
+                });
+
+                if (!termsRes.ok) {
+                  throw new Error('Failed to analyze job description');
+                }
+
+                // Generate cover letter
+                const letterRes = await fetch('/api/generate/cover-letter', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ sessionId }),
+                });
+
+                if (!letterRes.ok) {
+                  const errorData = await letterRes.json();
+                  throw new Error(errorData.error || 'Failed to generate cover letter');
+                }
+
+                // Navigate to cover letter page
+                router.push(`/cover-letter?sessionId=${sessionId}`);
+              } catch (err) {
+                console.error('Error generating cover letter:', err);
+                setError(err instanceof Error ? err.message : 'An error occurred');
+              } finally {
+                setLoadingAction(null);
+              }
+            }}
+            disabled={(loadingAction !== null) || !resumeFile}
+            className={`btn-primary mt-3 w-full transition-all ${
+              !resumeFile
+                ? 'opacity-40 cursor-not-allowed bg-gray-400'
+                : loadingAction === 'cover'
+                ? 'opacity-100 hover:bg-gold-400'
+                : loadingAction === 'resume'
+                ? 'opacity-40 cursor-not-allowed bg-gray-400'
+                : 'opacity-100 hover:bg-gold-400'
+            }`}
+          >
+            {loadingAction === 'cover' ? 'Generating...' : 'Generate Cover Letter'}
           </button>
           {error && (
             <p className="mt-4 text-sm text-red-600 font-semibold">{error}</p>

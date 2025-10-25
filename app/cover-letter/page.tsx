@@ -12,6 +12,7 @@ function CoverLetterPageContent() {
   const [letter, setLetter] = useState<TailoredCoverLetter | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [isGeneratingResume, setIsGeneratingResume] = useState(false);
 
   useEffect(() => {
     if (!sessionId) {
@@ -54,6 +55,33 @@ function CoverLetterPageContent() {
     } catch (error) {
       console.error('Error saving cover letter:', error);
       alert('Failed to save changes. Please try again.');
+    }
+  };
+
+  const handleDownloadResume = async () => {
+    setIsGeneratingResume(true);
+    try {
+      // First, check if resume already exists in session
+      const sessionRes = await fetch(`/api/session/${sessionId}`);
+      const sessionData = await sessionRes.json();
+
+      // If no resume exists, generate it
+      if (!sessionData.resumeJson) {
+        const res = await fetch('/api/generate/resume', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId }),
+        });
+        if (!res.ok) throw new Error('Failed to generate resume');
+      }
+
+      // Navigate to resume page
+      router.push(`/resume?sessionId=${sessionId}`);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to generate resume');
+    } finally {
+      setIsGeneratingResume(false);
     }
   };
 
@@ -118,42 +146,47 @@ function CoverLetterPageContent() {
               {isEditing ? 'Done Editing' : 'Edit Cover Letter'}
             </button>
           </div>
-          <div className="max-h-[600px] overflow-y-auto prose prose-sm max-w-none">
-            <div
-              contentEditable={isEditing}
-              suppressContentEditableWarning
-              onBlur={(e) => updateLetterField('salutation', e.currentTarget.textContent || '')}
-              className="mb-6 focus:outline-none focus:bg-beige-100"
-            >
-              {letter.salutation}
-            </div>
-
-            {letter.paragraphs.map((paragraph, idx) => (
-              <p
-                key={idx}
+          <div className="max-h-[600px] overflow-y-auto">
+            <div className="bg-white rounded-lg shadow-lg p-8 prose prose-sm max-w-none">
+              <div
                 contentEditable={isEditing}
                 suppressContentEditableWarning
-                onBlur={(e) => updateParagraph(idx, e.currentTarget.textContent || '')}
-                className="mb-4 text-justify focus:outline-none focus:bg-beige-100"
+                onBlur={(e) => updateLetterField('salutation', e.currentTarget.textContent || '')}
+                className="mb-6 focus:outline-none focus:bg-beige-100 pr-8"
               >
-                {paragraph.text}
-              </p>
-            ))}
+                {letter.salutation}
+              </div>
 
-            <div
-              contentEditable={isEditing}
-              suppressContentEditableWarning
-              onBlur={(e) => updateLetterField('closing', e.currentTarget.textContent || '')}
-              className="mt-6 whitespace-pre-line focus:outline-none focus:bg-beige-100"
-            >
-              {letter.closing}
+              {letter.paragraphs.map((paragraph, idx) => (
+                <p
+                  key={idx}
+                  contentEditable={isEditing}
+                  suppressContentEditableWarning
+                  onBlur={(e) => updateParagraph(idx, e.currentTarget.textContent || '')}
+                  className="mb-4 text-justify focus:outline-none focus:bg-beige-100 pr-8"
+                >
+                  {paragraph.text}
+                </p>
+              ))}
+
+              <div
+                contentEditable={isEditing}
+                suppressContentEditableWarning
+                onBlur={(e) => updateLetterField('closing', e.currentTarget.textContent || '')}
+                className="mt-6 whitespace-pre-line focus:outline-none focus:bg-beige-100 pr-8"
+              >
+                {letter.closing}
+              </div>
             </div>
           </div>
 
-          {/* Button */}
-          <div className="mt-6 pt-6 border-t border-ink-700/20">
-            <button onClick={handleDownloadLetter} className="btn-primary w-full">
+          {/* Buttons */}
+          <div className="flex gap-4 mt-6 pt-6 border-t border-ink-700/20">
+            <button onClick={handleDownloadLetter} className="btn-primary flex-1">
               Download Cover Letter (PDF)
+            </button>
+            <button onClick={handleDownloadResume} disabled={isGeneratingResume} className="btn-primary flex-1 disabled:opacity-50">
+              {isGeneratingResume ? 'Generating Resume...' : 'Download Tailored Resume'}
             </button>
           </div>
         </div>

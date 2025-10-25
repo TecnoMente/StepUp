@@ -27,6 +27,9 @@ model Session {
   resumeJson String?  // TailoredResume JSON
   letterJson String?  // TailoredCoverLetter JSON
 
+  // PDF rendering options (stored as JSON)
+  resumePdfOptions String? // ResumePDFOptions JSON (font sizes, etc. to ensure one-page fit)
+
   // Metadata
   atsScore   Int?     // Number of matched terms
 
