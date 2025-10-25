@@ -57,6 +57,10 @@ function CoverLetterPageContent() {
     }
   };
 
+  const handleDownloadResume = () => {
+    router.push(`/resume?sessionId=${sessionId}`);
+  };
+
   const handleEditToggle = () => {
     setIsEditing(!isEditing);
   };
@@ -152,10 +156,13 @@ function CoverLetterPageContent() {
             </div>
           </div>
 
-          {/* Button */}
-          <div className="mt-6 pt-6 border-t border-ink-700/20">
-            <button onClick={handleDownloadLetter} className="btn-primary w-full">
+          {/* Buttons */}
+          <div className="flex gap-4 mt-6 pt-6 border-t border-ink-700/20">
+            <button onClick={handleDownloadLetter} className="btn-primary flex-1">
               Download Cover Letter (PDF)
+            </button>
+            <button onClick={handleDownloadResume} className="btn-primary flex-1">
+              Download Tailored Resume
             </button>
           </div>
         </div>

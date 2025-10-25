@@ -430,10 +430,182 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // If still not fitted: deterministic programmatic compressor (guarantee fit)
+      if (!fitted) {
+        // This implements several deterministic steps that progressively reduce
+        // length and complexity until the resume fits a single page. We prefer
+        // programmatic changes over asking the LLM again to avoid nondeterminism.
+        const baseOpts: Partial<ResumePDFOptions> = { bodyFontSize: 8, nameFontSize: 12, sectionTitleSize: 9, pagePadding: '0.125in 0.125in', lineHeight: 1.0 };
+
+        const tryRender = async (r: TailoredResume, opts: Partial<ResumePDFOptions>) => {
+          try {
+            const buf = await generateResumePDF(sanitizeForRender(r), opts);
+            const data = (await pdf(buf as Buffer)) as PDFParseResult;
+            return (data.numpages ?? 0);
+          } catch (e) {
+            console.error('Deterministic render error', e);
+            return Number.MAX_SAFE_INTEGER;
+          }
+        };
+
+        // Deep clone function
+        const cloneResume = (r: TailoredResume) => JSON.parse(JSON.stringify(r)) as TailoredResume;
+
+        // Helpers: truncate text and limit bullets per item
+        const truncate = (s: string, max: number) => (s && s.length > max ? s.slice(0, max).trim() + '…' : s);
+
+        // Strategy sequence: 1) limit bullets/item to 3, 2) limit bullets to 2, 3) truncate bullets progressively,
+        // 4) merge bullets per item into one, 5) keep only top 3 sections by matched term score, 6) final extreme truncation
+        const strategies = [
+          { name: 'limit-3', maxBullets: 3, maxChar: null },
+          { name: 'limit-2', maxBullets: 2, maxChar: null },
+          { name: 'truncate-120', maxBullets: 2, maxChar: 120 },
+          { name: 'truncate-100', maxBullets: 2, maxChar: 100 },
+          { name: 'truncate-80', maxBullets: 2, maxChar: 80 },
+          { name: 'merge-bullets', merge: true, maxChar: 400 },
+          { name: 'top-3-sections', keepSections: 3, maxChar: 80 },
+          { name: 'final-extreme', keepSections: 2, maxChar: 60, pagePadding: '0.08in 0.08in', nameFontSize: 11, sectionTitleSize: 8 },
+        ];
+
+        for (const strat of strategies) {
+          const candidate = cloneResume(finalResume);
+
+          // Remove or limit bullets
+          for (const sec of candidate.sections) {
+            for (const it of sec.items || []) {
+              if (Array.isArray(it.bullets) && it.bullets.length > 0) {
+                if ((strat as any).merge) {
+                  // merge all bullets into one combined bullet per item
+                  const texts = (it.bullets || []).map(b => (b.text || '').trim()).filter(Boolean);
+                  const merged = texts.join('; ');
+                  it.bullets = [{ text: truncate(merged, (strat as any).maxChar ?? 400), evidence_spans: [], matched_terms: [] } as ResumeBullet];
+                } else {
+                  const maxB = (strat as any).maxBullets ?? it.bullets.length;
+                  it.bullets = (it.bullets || []).slice(0, maxB);
+                  if ((strat as any).maxChar) {
+                    it.bullets = it.bullets.map((b: ResumeBullet) => ({ ...b, text: truncate(b.text || '', (strat as any).maxChar) }));
+                  }
+                }
+              }
+            }
+          }
+
+          // Keep only top N sections by matched-term score if requested
+          if ((strat as any).keepSections) {
+            const scores = candidate.sections.map((s, idx) => {
+              let score = 0;
+              for (const it of s.items || []) {
+                for (const b of it.bullets || []) {
+                  score += (Array.isArray(b.matched_terms) ? b.matched_terms.length : 0);
+                }
+              }
+              return { idx, score, name: s.name };
+            });
+            scores.sort((a, b) => b.score - a.score);
+            const keep = new Set(scores.slice(0, (strat as any).keepSections).map(s => s.idx));
+            candidate.sections = candidate.sections.filter((_, idx) => keep.has(idx));
+          }
+
+          // Apply candidate truncation and aggressive opts
+          const opts: Partial<ResumePDFOptions> = { ...baseOpts };
+          if ((strat as any).pagePadding) opts.pagePadding = (strat as any).pagePadding;
+          if ((strat as any).nameFontSize) opts.nameFontSize = (strat as any).nameFontSize;
+          if ((strat as any).sectionTitleSize) opts.sectionTitleSize = (strat as any).sectionTitleSize;
+
+          const pages = await tryRender(candidate, opts);
+          if (pages <= 1) {
+            finalResume = candidate;
+            fitted = true;
+            finalPdfOptions = opts;
+            lastPageCount = pages;
+            break;
+          }
+          // otherwise continue to next strategy
+        }
+
+        // If still not fitted, as an unsurprising final step, do extreme truncation: keep only Experience with top 5 bullets total
+        if (!fitted) {
+          const finalCandidate = cloneResume(finalResume);
+          // keep only Experience (or first section) and top 5 bullets across it
+          const expIdx = finalCandidate.sections.findIndex(s => /experience/i.test(s.name));
+          if (expIdx >= 0) {
+            const exp = finalCandidate.sections[expIdx];
+            const allBullets: ResumeBullet[] = [];
+            for (const it of exp.items || []) {
+              for (const b of it.bullets || []) allBullets.push(b);
+            }
+            // keep top 5 by matched_terms length
+            allBullets.sort((a, b) => (b.matched_terms?.length || 0) - (a.matched_terms?.length || 0));
+            const keep = allBullets.slice(0, 5);
+            exp.items = [{ title: exp.items?.[0]?.title ?? '', organization: exp.items?.[0]?.organization ?? '', bullets: keep }];
+            finalCandidate.sections = [exp];
+          } else {
+            // fallback: keep first section only and first 5 bullets across items
+            const s = finalCandidate.sections[0];
+            const all = (s.items || []).flatMap(it => it.bullets || []);
+            const keep = all.slice(0, 5);
+            s.items = [{ title: s.items?.[0]?.title ?? '', organization: s.items?.[0]?.organization ?? '', bullets: keep }];
+            finalCandidate.sections = [s];
+          }
+
+          const extremeOpts: Partial<ResumePDFOptions> = { bodyFontSize: 8, nameFontSize: 11, sectionTitleSize: 8, pagePadding: '0.08in 0.08in', lineHeight: 1.0 };
+          const pagesFinal = await tryRender(finalCandidate, extremeOpts);
+          if (pagesFinal <= 1) {
+            finalResume = finalCandidate;
+            finalPdfOptions = extremeOpts;
+            fitted = true;
+            lastPageCount = pagesFinal;
+          }
+        }
+      }
+
       if (!fitted && lastPageCount > 1) {
-        // As a last resort, still return success but mark that we forced aggressive trimming.
-        // This should be extremely rare given the fallbacks above.
-        console.warn('Could not deterministically fit to one page despite aggressive trimming; returning best-effort result');
+        // Final forced minimal resume: create a very small, information-dense one-page
+        // resume (Experience-first, max 5 bullets) and render with extreme layout options.
+        try {
+          const minimal = ((): TailoredResume => {
+            const src = finalResume.sections && finalResume.sections.length > 0 ? finalResume : tailoredResume as TailoredResume;
+            // pick Experience if present, otherwise first section
+            const expIdx = src.sections.findIndex(s => /experience/i.test(s.name));
+            const section = expIdx >= 0 ? src.sections[expIdx] : src.sections[0];
+            // collect top bullets by matched_terms across the section
+            const allBullets: ResumeBullet[] = [];
+            for (const it of section.items || []) {
+              for (const b of it.bullets || []) allBullets.push(b);
+            }
+            allBullets.sort((a, b) => (b.matched_terms?.length || 0) - (a.matched_terms?.length || 0));
+            const keep = allBullets.slice(0, 5).map(b => ({ ...b, text: (b.text || '').slice(0, 80) }));
+
+            const minimalSection = { name: section.name, items: [{ title: section.items?.[0]?.title ?? '', organization: section.items?.[0]?.organization ?? '', bullets: keep }] };
+
+            // minimal resume object
+            return {
+              name: (finalResume.name || tailoredResume.name || '').split(' ').slice(0,2).join(' '),
+              email: undefined,
+              phone: undefined,
+              location: undefined,
+              linkedin: undefined,
+              github: undefined,
+              sections: [minimalSection],
+              matched_term_count: recalculateMatchedTerms({ ...finalResume, sections: [minimalSection] } as TailoredResume),
+            } as TailoredResume;
+          })();
+
+          const extremeOpts: Partial<ResumePDFOptions> = { bodyFontSize: 8, nameFontSize: 10, sectionTitleSize: 8, pagePadding: '0.04in 0.04in', lineHeight: 1.0 };
+          const bufMin = await generateResumePDF(sanitizeForRender(minimal), extremeOpts);
+          const pagesMin = (await pdf(bufMin as Buffer)) as PDFParseResult;
+          const numMin = pagesMin.numpages ?? 0;
+          if (numMin <= 1) {
+            finalResume = minimal;
+            finalPdfOptions = extremeOpts;
+            fitted = true;
+            lastPageCount = numMin;
+          } else {
+            console.warn('Final forced minimal resume still >1 page, returning best-effort result');
+          }
+        } catch (err) {
+          console.error('Error generating final minimal resume fallback', err);
+        }
       }
     }
 
