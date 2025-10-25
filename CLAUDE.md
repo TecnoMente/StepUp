@@ -59,10 +59,41 @@ rm prisma/dev.db && npm run db:push
 
 The application's most critical feature is its evidence-based validation system that prevents AI hallucinations:
 
+**🚨 ZERO FABRICATION POLICY 🚨**
+
+The system enforces that **ALL content comes ONLY from the uploaded resume**, not the job description. The job description is used ONLY for:
+- Identifying keywords to prioritize
+- Determining which resume content to emphasize
+- Guiding how to rephrase existing facts
+
+The job description is NEVER a source of facts about the candidate.
+
+**Multi-Layer Protection:**
+
 1. **Evidence Spans**: Every fact in generated resumes/cover letters includes character offsets (`start`, `end`) pointing to exact substrings in source documents (resume, job description, or extra info)
-2. **Server-Side Validation**: `lib/utils/validation.ts` validates all evidence spans before returning results to the user
+
+2. **Server-Side Validation** (`lib/utils/validation.ts`):
+   - Validates all evidence spans point to real text in source documents
+   - **NEW**: Checks evidence source distribution
+   - For resumes: Errors if <50% of evidence from resume, warns if >30% from JD
+   - For cover letters: Errors if <40% of evidence from resume, warns if >40% from JD
+   - Logs evidence distribution percentages for monitoring
+
 3. **Evidence Repair**: `tryRepairEvidenceSpans()` attempts to fix common model indexing mistakes by locating referenced text in source documents
+
 4. **Structured Outputs**: Claude's tool use API enforces JSON schemas with required `evidence_spans` arrays
+
+5. **Explicit System Prompts** (`lib/llm/client.ts` lines 14-131):
+   - Clear "ZERO FABRICATION POLICY" section
+   - Explicit rules: "If not in resume → don't include it"
+   - Lists what can/cannot be done
+   - Emphasizes resume is ONLY source of candidate facts
+   - Job description is for keywords ONLY
+
+6. **Reinforced User Prompts** (lines 399-495):
+   - Repeated warnings with 🚨 markers
+   - Labels sections: "FOR KEYWORDS ONLY - NOT A SOURCE OF FACTS"
+   - Validation checklist includes "NO skills/experience added that aren't in resume"
 
 ### LLM Integration (`lib/llm/client.ts`)
 
