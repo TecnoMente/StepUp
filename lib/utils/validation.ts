@@ -63,6 +63,9 @@ export function validateTailoredResume(
   sources: SourceTexts
 ): ValidationResult {
   const errors: ValidationError[] = [];
+  let resumeEvidenceCount = 0;
+  let jdEvidenceCount = 0;
+  let extraEvidenceCount = 0;
 
   for (const section of resume.sections) {
     for (const item of section.items) {
@@ -70,6 +73,13 @@ export function validateTailoredResume(
         for (const bullet of item.bullets) {
           const bulletErrors = validateEvidenceSpans(bullet.evidence_spans, sources);
           errors.push(...bulletErrors);
+
+          // Count evidence sources
+          for (const span of bullet.evidence_spans) {
+            if (span.source === 'resume') resumeEvidenceCount++;
+            else if (span.source === 'jd') jdEvidenceCount++;
+            else if (span.source === 'extra') extraEvidenceCount++;
+          }
 
           // Ensure matched_terms are valid
           if (!Array.isArray(bullet.matched_terms)) {
@@ -91,6 +101,32 @@ export function validateTailoredResume(
     });
   }
 
+  // Check evidence source distribution - most evidence should come from resume
+  const totalEvidence = resumeEvidenceCount + jdEvidenceCount + extraEvidenceCount;
+  if (totalEvidence > 0) {
+    const resumePercentage = (resumeEvidenceCount / totalEvidence) * 100;
+    const jdPercentage = (jdEvidenceCount / totalEvidence) * 100;
+
+    // WARNING: If more than 30% of evidence comes from JD, that's suspicious
+    // (some JD evidence is OK for context, but resume should be primary source)
+    if (jdPercentage > 30) {
+      errors.push({
+        field: 'evidence_distribution',
+        message: `WARNING: ${jdPercentage.toFixed(1)}% of evidence comes from job description. Resume should be primary source of facts. This may indicate fabricated content.`,
+      });
+    }
+
+    // ERROR: If less than 50% of evidence comes from resume, that's a red flag
+    if (resumePercentage < 50) {
+      errors.push({
+        field: 'evidence_distribution',
+        message: `ERROR: Only ${resumePercentage.toFixed(1)}% of evidence comes from resume. Most facts should come from the resume, not the job description.`,
+      });
+    }
+
+    console.log(`Evidence distribution - Resume: ${resumePercentage.toFixed(1)}%, JD: ${jdPercentage.toFixed(1)}%, Extra: ${((extraEvidenceCount / totalEvidence) * 100).toFixed(1)}%`);
+  }
+
   return {
     valid: errors.length === 0,
     errors,
@@ -105,10 +141,20 @@ export function validateTailoredCoverLetter(
   sources: SourceTexts
 ): ValidationResult {
   const errors: ValidationError[] = [];
+  let resumeEvidenceCount = 0;
+  let jdEvidenceCount = 0;
+  let extraEvidenceCount = 0;
 
   for (const paragraph of letter.paragraphs) {
     const paragraphErrors = validateEvidenceSpans(paragraph.evidence_spans, sources);
     errors.push(...paragraphErrors);
+
+    // Count evidence sources
+    for (const span of paragraph.evidence_spans) {
+      if (span.source === 'resume') resumeEvidenceCount++;
+      else if (span.source === 'jd') jdEvidenceCount++;
+      else if (span.source === 'extra') extraEvidenceCount++;
+    }
 
     if (!Array.isArray(paragraph.matched_terms)) {
       errors.push({
@@ -123,6 +169,32 @@ export function validateTailoredCoverLetter(
       field: 'matched_term_count',
       message: 'matched_term_count must be a non-negative number',
     });
+  }
+
+  // Check evidence source distribution - most evidence should come from resume
+  const totalEvidence = resumeEvidenceCount + jdEvidenceCount + extraEvidenceCount;
+  if (totalEvidence > 0) {
+    const resumePercentage = (resumeEvidenceCount / totalEvidence) * 100;
+    const jdPercentage = (jdEvidenceCount / totalEvidence) * 100;
+
+    // Cover letters can reference JD more than resumes (to show alignment), but resume should still be primary
+    // WARNING: If more than 40% of evidence comes from JD (more lenient than resume)
+    if (jdPercentage > 40) {
+      errors.push({
+        field: 'evidence_distribution',
+        message: `WARNING: ${jdPercentage.toFixed(1)}% of evidence comes from job description. Resume should be primary source of facts about candidate. This may indicate fabricated content.`,
+      });
+    }
+
+    // ERROR: If less than 40% of evidence comes from resume (more lenient than resume validation)
+    if (resumePercentage < 40) {
+      errors.push({
+        field: 'evidence_distribution',
+        message: `ERROR: Only ${resumePercentage.toFixed(1)}% of evidence comes from resume. Most facts about candidate should come from the resume, not the job description.`,
+      });
+    }
+
+    console.log(`Cover Letter Evidence distribution - Resume: ${resumePercentage.toFixed(1)}%, JD: ${jdPercentage.toFixed(1)}%, Extra: ${((extraEvidenceCount / totalEvidence) * 100).toFixed(1)}%`);
   }
 
   return {
