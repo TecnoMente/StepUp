@@ -56,6 +56,10 @@ export interface GenerateResumeInput {
   resume: string;
   extra?: string;
   terms: string[];
+  // If true, instruct the model to aggressively condense the result to fit a single page
+  forceOnePage?: boolean;
+  // Optional hint to the model (e.g., 'current output is 2 pages, please compress')
+  hint?: string;
 }
 
 export interface GenerateCoverLetterInput {
@@ -63,6 +67,10 @@ export interface GenerateCoverLetterInput {
   resume: string;
   extra?: string;
   terms: string[];
+  // Request to condense the letter to fit a single page
+  forceOnePage?: boolean;
+  // Optional hint for the model
+  hint?: string;
 }
 
 export interface ValidationError {

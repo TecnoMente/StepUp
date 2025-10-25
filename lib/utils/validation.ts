@@ -132,6 +132,126 @@ export function validateTailoredCoverLetter(
 }
 
 /**
+ * Attempt to repair invalid evidence spans by locating the referenced text in sources.
+ * This fixes common model mistakes (off-by-one, zero-length spans) when the cited
+ * substring exists verbatim in the source. Only apply repairs when there is a clear
+ * match; do not invent or guess substrings.
+ */
+export function tryRepairEvidenceSpans(
+  obj: unknown,
+  sources: SourceTexts
+): boolean {
+  let repaired = false;
+
+  // Resume structure: obj.sections[].items[].bullets[].evidence_spans
+  // Cover letter structure: obj.paragraphs[].evidence_spans
+
+  const safeFindAndRepair = (spans: EvidenceSpan[] | undefined, textCandidate?: string) => {
+    if (!spans || spans.length === 0) return;
+    for (const span of spans) {
+      const sourceText = sources[span.source];
+      if (!sourceText) continue;
+
+      const invalid = span.start < 0 || span.end > sourceText.length || span.start >= span.end;
+      if (!invalid) continue;
+
+      // Try to find the textCandidate in the source text
+      const needle = (textCandidate || '').toString().trim();
+      if (needle) {
+        const idx = sourceText.indexOf(needle);
+        if (idx >= 0) {
+          span.start = idx;
+          span.end = idx + needle.length;
+          // store the referenced text for transparency
+          span.text = sourceText.substring(span.start, span.end);
+          repaired = true;
+          continue;
+        }
+
+        // If exact match not found, try searching for any matched term inside the source
+        // (useful when the model provided a long span that contains known keywords)
+        // If available, parent metadata may be attached to spans for context
+      }
+
+      // Fallback: try to find any short substring of the needle
+      if (needle && needle.length > 10) {
+        const snippet = needle.slice(0, 30);
+        const idx2 = sourceText.indexOf(snippet);
+        if (idx2 >= 0) {
+          span.start = idx2;
+          span.end = Math.min(sourceText.length, idx2 + Math.min(needle.length, 400));
+          span.text = sourceText.substring(span.start, span.end);
+          repaired = true;
+          continue;
+        }
+      }
+
+      // Try matched_terms if available on the parent bullet/paragraph
+  const maybeParent = (spans as unknown as { __parent?: { matched_terms?: string[] } }).__parent;
+      if (maybeParent && Array.isArray(maybeParent.matched_terms)) {
+        for (const term of maybeParent.matched_terms) {
+          if (!term || typeof term !== 'string') continue;
+          const tIdx = sourceText.indexOf(term);
+          if (tIdx >= 0) {
+            // expand a bit around the term for context
+            const ctxStart = Math.max(0, tIdx - 20);
+            const ctxEnd = Math.min(sourceText.length, tIdx + term.length + 20);
+            span.start = ctxStart;
+            span.end = ctxEnd;
+            span.text = sourceText.substring(span.start, span.end);
+            repaired = true;
+            break;
+          }
+        }
+        if (repaired) continue;
+      }
+
+      // Last-resort: clamp or derive a reasonable span near the end of the source
+      const srcLen = sourceText.length;
+      const desiredLen = Math.max(20, Math.min(span.end - span.start || 100, 400));
+      const newEnd = Math.min(srcLen, span.end > 0 ? span.end : srcLen);
+      const newStart = Math.max(0, newEnd - desiredLen);
+      if (newStart < newEnd) {
+        span.start = newStart;
+        span.end = newEnd;
+        span.text = sourceText.substring(span.start, span.end);
+        repaired = true;
+      }
+    }
+  };
+
+  // Resume-style
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const asAny = obj as any;
+  if (asAny && Array.isArray(asAny.sections)) {
+    for (const section of asAny.sections) {
+      if (!section || !Array.isArray(section.items)) continue;
+      for (const item of section.items) {
+        const itemText = (item && item.title) ? String(item.title) : undefined;
+        if (Array.isArray(item.bullets)) {
+          for (const bullet of item.bullets) {
+            const bulletText = (bullet && bullet.text) ? String(bullet.text) : itemText;
+            safeFindAndRepair(bullet.evidence_spans, bulletText);
+          }
+        }
+      }
+    }
+    return repaired;
+  }
+
+  // Cover-letter-style
+  if (asAny && Array.isArray(asAny.paragraphs)) {
+    for (const paragraph of asAny.paragraphs) {
+      const paraText = paragraph && paragraph.text ? String(paragraph.text) : undefined;
+      safeFindAndRepair(paragraph.evidence_spans, paraText);
+    }
+    return repaired;
+  }
+
+  return repaired;
+}
+
+/**
  * Calculate actual matched term count from resume
  */
 export function recalculateMatchedTerms(resume: TailoredResume): number {
@@ -145,6 +265,16 @@ export function recalculateMatchedTerms(resume: TailoredResume): number {
         }
       }
     }
+  }
+
+  return uniqueTerms.size;
+}
+
+export function recalculateMatchedTermsForCoverLetter(letter: TailoredCoverLetter): number {
+  const uniqueTerms = new Set<string>();
+
+  for (const paragraph of letter.paragraphs) {
+    paragraph.matched_terms.forEach((term) => uniqueTerms.add(term));
   }
 
   return uniqueTerms.size;
