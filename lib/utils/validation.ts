@@ -271,3 +271,13 @@ export function recalculateMatchedTerms(resume: TailoredResume): number {
 
   return uniqueTerms.size;
 }
+
+export function recalculateMatchedTermsForCoverLetter(letter: TailoredCoverLetter): number {
+  const uniqueTerms = new Set<string>();
+
+  for (const paragraph of letter.paragraphs) {
+    paragraph.matched_terms.forEach((term) => uniqueTerms.add(term));
+  }
+
+  return uniqueTerms.size;
+}

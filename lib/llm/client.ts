@@ -354,7 +354,13 @@ ${jd}`,
    * Build prompt for resume generation
    */
   private buildResumePrompt(input: GenerateResumeInput): string {
-    return `I need you to create a ONE-PAGE, ATS-optimized resume tailored to this job description using ONLY the information provided below.
+   const aggressive = input.forceOnePage
+    ? '\n\n**AGGRESSIVE ONE-PAGE CONSTRAINT:** The previous attempt produced more than one page. Now CONDENSE aggressively: shorten bullets, remove the least JD-relevant bullets, and tighten wording while maintaining evidence spans and factual accuracy. Prioritize keeping JD-matching facts but shorten text to fit one page.'
+    : '';
+
+   const hint = input.hint ? `\n\nHINT FOR THIS ATTEMPT: ${input.hint}` : '';
+
+   return `I need you to create a ONE-PAGE, ATS-optimized resume tailored to this job description using ONLY the information provided below.${aggressive}${hint}
 
 **Job Description:**
 ${input.jd}
@@ -370,50 +376,50 @@ ${input.terms.join(', ')}
 **CRITICAL INSTRUCTIONS:**
 
 1. **SMART CONTENT SELECTION (Keep ALL Relevant Experience):**
-   - **ALWAYS INCLUDE:** All experiences that match job description keywords/requirements
-   - **PRIORITIZE:** Recent roles (last 3-5 years) with 3-5 detailed bullets each
-   - **CONDENSE:** Mid-tier roles (5-7 years ago) to 2-3 bullets focusing on achievements
-   - **ONLY REMOVE:** Experiences 10+ years old with ZERO relevance to the job description
-   - Target: 750-850 words total, but NEVER sacrifice relevant experience just to hit word count
-   - If over 850 words: tighten bullet wording FIRST, then reduce bullets on least relevant roles
+  - **ALWAYS INCLUDE:** All experiences that match job description keywords/requirements
+  - **PRIORITIZE:** Recent roles (last 3-5 years) with 3-5 detailed bullets each
+  - **CONDENSE:** Mid-tier roles (5-7 years ago) to 2-3 bullets focusing on achievements
+  - **ONLY REMOVE:** Experiences 10+ years old with ZERO relevance to the job description
+  - Target: 750-850 words total, but NEVER sacrifice relevant experience just to hit word count
+  - If over 850 words: tighten bullet wording FIRST, then reduce bullets on least relevant roles
 
 2. **KEYWORD OPTIMIZATION (Critical for ATS):**
-   - Use EXACT terminology from job description (match capitalization, spelling)
-   - If JD says "JavaScript" → use "JavaScript" (NOT "JS", "Javascript", "java script")
-   - If JD says "CI/CD" → use "CI/CD" (NOT "continuous integration")
-   - Place keywords in: Skills section + Experience bullets (prove you used them)
-   - NO keyword stuffing - integrate naturally into achievement statements
+  - Use EXACT terminology from job description (match capitalization, spelling)
+  - If JD says "JavaScript" → use "JavaScript" (NOT "JS", "Javascript", "java script")
+  - If JD says "CI/CD" → use "CI/CD" (NOT "continuous integration")
+  - Place keywords in: Skills section + Experience bullets (prove you used them)
+  - NO keyword stuffing - integrate naturally into achievement statements
 
 3. **ACHIEVEMENT-FOCUSED BULLETS (50% Must Have Metrics):**
-   - START with action verbs: Developed, Implemented, Led, Optimized, Designed, Managed, Built, Engineered
-   - INCLUDE quantified results: numbers, percentages, dollar amounts, time saved
-   - FORMAT: "Action verb + what you did + technologies/keywords + measurable impact"
-   - GOOD: "Implemented CI/CD pipeline using Jenkins and Docker, reducing deployment time from 2 hours to 15 minutes"
-   - BAD: "Responsible for improving deployment processes"
-   - Each bullet: 15-25 words (concise but impactful)
-   - **REQUIREMENT: At least 50% of bullets MUST have specific numbers/metrics**
+  - START with action verbs: Developed, Implemented, Led, Optimized, Designed, Managed, Built, Engineered
+  - INCLUDE quantified results: numbers, percentages, dollar amounts, time saved
+  - FORMAT: "Action verb + what you did + technologies/keywords + measurable impact"
+  - GOOD: "Implemented CI/CD pipeline using Jenkins and Docker, reducing deployment time from 2 hours to 15 minutes"
+  - BAD: "Responsible for improving deployment processes"
+  - Each bullet: 15-25 words (concise but impactful)
+  - **REQUIREMENT: At least 50% of bullets MUST have specific numbers/metrics**
 
 4. **ATS-COMPLIANT FORMATTING:**
-   - Section headers: "WORK EXPERIENCE", "EDUCATION", "SKILLS", "PROJECT EXPERIENCE", "LEADERSHIP"
-   - Date format: "Month YYYY - Month YYYY" (e.g., "January 2022 - July 2025")
-   - Single column layout only (no tables, multi-column, text boxes)
-   - Simple bullets: "•" character only
-   - No special formatting (handled in PDF rendering)
+  - Section headers: "WORK EXPERIENCE", "EDUCATION", "SKILLS", "PROJECT EXPERIENCE", "LEADERSHIP"
+  - Date format: "Month YYYY - Month YYYY" (e.g., "January 2022 - July 2025")
+  - Single column layout only (no tables, multi-column, text boxes)
+  - Simple bullets: "•" character only
+  - No special formatting (handled in PDF rendering)
 
 5. **INCLUDE ALL IMPORTANT SECTIONS:**
-   - Education: Institution, degree, graduation date, GPA (if strong), relevant coursework
-   - Skills: Organize by theme (e.g., "Languages & Frameworks:", "DevOps & Cloud:")
-   - Work Experience: ALL roles, prioritizing recent and JD-relevant
-   - Projects: Include if they demonstrate JD-relevant skills
-   - Leadership/Activities: Include if space permits and relevant
+  - Education: Institution, degree, graduation date, GPA (if strong), relevant coursework
+  - Skills: Organize by theme (e.g., "Languages & Frameworks:", "DevOps & Cloud:")
+  - Work Experience: ALL roles, prioritizing recent and JD-relevant
+  - Projects: Include if they demonstrate JD-relevant skills
+  - Leadership/Activities: Include if space permits and relevant
 
 6. **FACTUAL ACCURACY (ZERO FABRICATION):**
-   - Extract candidate's full name, email, phone, location, LinkedIn, and GitHub URLs ONLY if present in resume
-   - Use ONLY facts from provided documents
-   - For EVERY bullet, cite evidence_spans with exact character offsets
-   - NEVER invent: employers, roles, dates, locations, credentials, numbers, projects, contact info
-   - If contact info (LinkedIn, GitHub, phone, etc.) is not in the resume, leave those fields empty
-   - If you can't find evidence for a claim, DON'T include it
+  - Extract candidate's full name, email, phone, location, LinkedIn, and GitHub URLs ONLY if present in resume
+  - Use ONLY facts from provided documents
+  - For EVERY bullet, cite evidence_spans with exact character offsets
+  - NEVER invent: employers, roles, dates, locations, credentials, numbers, projects, contact info
+  - If contact info (LinkedIn, GitHub, phone, etc.) is not in the resume, leave those fields empty
+  - If you can't find evidence for a claim, DON'T include it
 
 **VALIDATION CHECKLIST (before returning):**
 ✓ ALL experiences matching JD keywords are included
@@ -431,7 +437,13 @@ Use the generate_tailored_resume tool to return your result.`;
    * Build prompt for cover letter generation
    */
   private buildCoverLetterPrompt(input: GenerateCoverLetterInput): string {
-    return `I need you to write a professional cover letter tailored to a job description using ONLY the information from the resume provided below. Follow all the critical rules in your system prompt.
+    const aggressive = (input as any).forceOnePage
+      ? '\n\n**AGGRESSIVE LENGTH CONSTRAINT:** Please condense to fit a single page while preserving factual accuracy and evidence spans. Shorten sentences and reduce paragraphs as necessary.'
+      : '';
+
+    const hint = (input as any).hint ? `\n\nHINT FOR THIS ATTEMPT: ${(input as any).hint}` : '';
+
+    return `I need you to write a professional cover letter tailored to a job description using ONLY the information from the resume provided below. Follow all the critical rules in your system prompt.${aggressive}${hint}
 
 **Job Description:**
 ${input.jd}

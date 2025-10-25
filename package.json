@@ -4,14 +4,18 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "preinstall": "node ./scripts/ensure-pnpm.js",
+  "bootstrap": "node ./scripts/ensure-pnpm.js && pnpm install --frozen-lockfile",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
+    "db:migrate-ats": "npx tsx scripts/migrate-cover-letter-ats-scores.ts",
     "test": "vitest",
     "postinstall": "prisma generate"
   },
+  "packageManager": "pnpm@8.8.0",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
     "@prisma/client": "^5.22.0",

@@ -26,8 +26,18 @@ export async function GET(request: NextRequest) {
 
     const resume = JSON.parse(session.resumeJson) as TailoredResume;
 
-    // Generate PDF buffer
-    const pdfBuffer = await generateResumePDF(resume);
+    // Parse PDF options if available (to ensure one-page constraint)
+    let pdfOptions = {};
+    if (session.resumePdfOptions) {
+      try {
+        pdfOptions = JSON.parse(session.resumePdfOptions);
+      } catch (e) {
+        console.error('Failed to parse PDF options:', e);
+      }
+    }
+
+    // Generate PDF buffer using saved options
+    const pdfBuffer = await generateResumePDF(resume, pdfOptions);
 
     // Create a safe filename from the user's name
     const safeFileName = resume.name.replace(/[^a-zA-Z0-9]/g, '_');
