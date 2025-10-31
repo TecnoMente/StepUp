@@ -293,6 +293,10 @@ export class LLMClient {
           input_schema: {
             type: 'object',
             properties: {
+              date: {
+                type: 'string',
+                description: 'Current date at the top of the letter (e.g., "September 23, 2025")',
+              },
               salutation: {
                 type: 'string',
                 description: 'Opening salutation (e.g., "Dear Hiring Manager,")',
@@ -336,7 +340,7 @@ export class LLMClient {
                 description: 'Total number of ATS terms matched',
               },
             },
-            required: ['salutation', 'paragraphs', 'closing', 'matched_term_count'],
+            required: ['date', 'salutation', 'paragraphs', 'closing', 'matched_term_count'],
           },
         },
       ],
@@ -504,6 +508,14 @@ Use the generate_tailored_resume tool to return your result.`;
 
     const hint = input.hint ? `\n\nHINT FOR THIS ATTEMPT: ${input.hint}` : '';
 
+    // Format current date as "Month Day, Year" (e.g., "September 23, 2025")
+    const currentDate = new Date();
+    const formattedDate = currentDate.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+
     return `I need you to write a professional cover letter tailored to a job description using ONLY the information from the resume provided below. Follow all the critical rules in your system prompt.${aggressive}${hint}
 
 🚨 CRITICAL: The job description is ONLY for understanding what the employer wants. DO NOT invent skills, achievements, or experiences. Use ONLY facts from the resume. 🚨
@@ -520,13 +532,14 @@ ${input.extra ? `**Additional Information (ALSO A SOURCE OF FACTS):**\n${input.e
 ${input.terms.join(', ')}
 
 **Task:**
-1. Write a compelling cover letter (3-4 paragraphs) that connects the candidate's ACTUAL resume experience to the job requirements
-2. Naturally incorporate ATS terms ONLY when they match skills/experience in the resume
-3. For EVERY sentence, cite evidence_spans with exact character offsets from the resume
-4. DO NOT invent any achievements, skills, experiences, projects, or technologies not present in the resume
-5. DO NOT exaggerate or embellish - use only facts stated in the resume
-6. If the resume doesn't mention a skill from the JD, do NOT claim the candidate has it
-7. Keep it professional and concise (under 400 words)
+1. Include today's date at the top of the letter: "${formattedDate}"
+2. Write a compelling cover letter (3-4 paragraphs) that connects the candidate's ACTUAL resume experience to the job requirements
+3. Naturally incorporate ATS terms ONLY when they match skills/experience in the resume
+4. For EVERY sentence, cite evidence_spans with exact character offsets from the resume
+5. DO NOT invent any achievements, skills, experiences, projects, or technologies not present in the resume
+6. DO NOT exaggerate or embellish - use only facts stated in the resume
+7. If the resume doesn't mention a skill from the JD, do NOT claim the candidate has it
+8. Keep it professional and concise (under 400 words)
 
 Use the generate_cover_letter tool to return your result.`;
   }

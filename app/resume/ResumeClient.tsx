@@ -105,27 +105,121 @@ export default function ResumeClient({ sessionId }: { sessionId: string | null }
           <div className="max-h-[600px] overflow-y-auto">
             <div className="bg-white rounded-lg shadow-lg p-8 max-w-none">
               <h2 className="text-2xl font-serif font-bold text-center mb-4 border-b-2 border-ink-900 pb-2 pr-8">
-                {resume.name.toUpperCase()}
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={resume.name}
+                    onChange={(e) => setResume({ ...resume, name: e.target.value })}
+                    className="w-full text-center bg-yellow-50 border border-gold-300 rounded px-2 py-1"
+                  />
+                ) : (
+                  resume.name.toUpperCase()
+                )}
               </h2>
 
-              {resume.summary && <p className="text-center mb-6 text-sm italic pr-8">{resume.summary}</p>}
+              {resume.summary && (
+                <div className="text-center mb-6 text-sm italic pr-8">
+                  {isEditing ? (
+                    <textarea
+                      value={resume.summary}
+                      onChange={(e) => setResume({ ...resume, summary: e.target.value })}
+                      className="w-full bg-yellow-50 border border-gold-300 rounded px-2 py-1 min-h-[60px]"
+                    />
+                  ) : (
+                    <p>{resume.summary}</p>
+                  )}
+                </div>
+              )}
 
               {resume.sections.map((section, idx) => (
                 <div key={idx} className="mb-6">
-                  <h3 className="text-lg font-bold border-b border-ink-700 mb-2">{section.name.toUpperCase()}</h3>
+                  <h3 className="text-lg font-bold border-b border-ink-700 mb-2">
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={section.name}
+                        onChange={(e) => {
+                          const newSections = [...resume.sections];
+                          newSections[idx] = { ...newSections[idx], name: e.target.value };
+                          setResume({ ...resume, sections: newSections });
+                        }}
+                        className="bg-yellow-50 border border-gold-300 rounded px-2 py-1 w-full"
+                      />
+                    ) : (
+                      section.name.toUpperCase()
+                    )}
+                  </h3>
                   {section.items.map((item, itemIdx) => (
                     <div key={itemIdx} className="mb-4">
                       {item.title && (
                         <div className="flex justify-between items-start mb-1">
-                          <div className="flex items-center gap-4 min-w-0">
-                            <strong className="truncate font-semibold">{item.title}</strong>
-                            {item.organization && (
-                              <span className="text-ink-900 truncate opacity-90">{item.organization}</span>
+                          <div className="flex items-center gap-4 min-w-0 flex-1">
+                            {isEditing ? (
+                              <>
+                                <input
+                                  type="text"
+                                  value={item.title}
+                                  onChange={(e) => {
+                                    const newSections = [...resume.sections];
+                                    newSections[idx].items[itemIdx].title = e.target.value;
+                                    setResume({ ...resume, sections: newSections });
+                                  }}
+                                  className="bg-yellow-50 border border-gold-300 rounded px-2 py-1 font-semibold flex-1"
+                                />
+                                {item.organization && (
+                                  <input
+                                    type="text"
+                                    value={item.organization}
+                                    onChange={(e) => {
+                                      const newSections = [...resume.sections];
+                                      newSections[idx].items[itemIdx].organization = e.target.value;
+                                      setResume({ ...resume, sections: newSections });
+                                    }}
+                                    className="bg-yellow-50 border border-gold-300 rounded px-2 py-1 flex-1"
+                                  />
+                                )}
+                              </>
+                            ) : (
+                              <>
+                                <strong className="truncate font-semibold">{item.title}</strong>
+                                {item.organization && (
+                                  <span className="text-ink-900 truncate opacity-90">{item.organization}</span>
+                                )}
+                              </>
                             )}
                           </div>
                           <div className="text-sm italic text-ink-700 text-right whitespace-nowrap ml-4">
-                            <div>{item.location}</div>
-                            <div>{item.dateRange}</div>
+                            {isEditing ? (
+                              <>
+                                <input
+                                  type="text"
+                                  value={item.location || ''}
+                                  onChange={(e) => {
+                                    const newSections = [...resume.sections];
+                                    newSections[idx].items[itemIdx].location = e.target.value;
+                                    setResume({ ...resume, sections: newSections });
+                                  }}
+                                  className="bg-yellow-50 border border-gold-300 rounded px-2 py-1 text-xs mb-1 w-32"
+                                  placeholder="Location"
+                                />
+                                <input
+                                  type="text"
+                                  value={item.dateRange || ''}
+                                  onChange={(e) => {
+                                    const newSections = [...resume.sections];
+                                    newSections[idx].items[itemIdx].dateRange = e.target.value;
+                                    setResume({ ...resume, sections: newSections });
+                                  }}
+                                  className="bg-yellow-50 border border-gold-300 rounded px-2 py-1 text-xs w-32"
+                                  placeholder="Date Range"
+                                />
+                              </>
+                            ) : (
+                              <>
+                                <div>{item.location}</div>
+                                <div>{item.dateRange}</div>
+                              </>
+                            )}
                           </div>
                         </div>
                       )}
@@ -133,7 +227,21 @@ export default function ResumeClient({ sessionId }: { sessionId: string | null }
                       {item.bullets && (
                         <ul className="list-disc ml-6 text-sm space-y-1 pr-8">
                           {item.bullets.map((bullet, bulletIdx) => (
-                            <li key={bulletIdx}>{bullet.text}</li>
+                            <li key={bulletIdx}>
+                              {isEditing ? (
+                                <textarea
+                                  value={bullet.text}
+                                  onChange={(e) => {
+                                    const newSections = [...resume.sections];
+                                    newSections[idx].items[itemIdx].bullets![bulletIdx].text = e.target.value;
+                                    setResume({ ...resume, sections: newSections });
+                                  }}
+                                  className="w-full bg-yellow-50 border border-gold-300 rounded px-2 py-1 min-h-[40px]"
+                                />
+                              ) : (
+                                bullet.text
+                              )}
+                            </li>
                           ))}
                         </ul>
                       )}

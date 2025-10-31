@@ -148,6 +148,10 @@ function CoverLetterPageContent() {
           </div>
           <div className="max-h-[600px] overflow-y-auto">
             <div className="bg-white rounded-lg shadow-lg p-8 prose prose-sm max-w-none">
+              <div className="mb-6 text-sm text-ink-700">
+                {letter.date}
+              </div>
+
               <div
                 contentEditable={isEditing}
                 suppressContentEditableWarning
