@@ -45,6 +45,7 @@ export interface CoverLetterParagraph {
 }
 
 export interface TailoredCoverLetter {
+  date: string; // Formatted date at top of cover letter (e.g., "September 23, 2025")
   salutation: string;
   paragraphs: CoverLetterParagraph[];
   closing: string;

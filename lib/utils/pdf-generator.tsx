@@ -128,6 +128,10 @@ const coverLetterStyles = StyleSheet.create({
     fontFamily: 'Helvetica',
     lineHeight: 1.5,
   },
+  date: {
+    marginBottom: 20,
+    fontSize: 11,
+  },
   salutation: {
     marginBottom: 15,
   },
@@ -268,6 +272,7 @@ export const ResumePDFDocument = ({ resume, opts }: { resume: TailoredResume; op
 export const CoverLetterPDFDocument = ({ letter }: { letter: TailoredCoverLetter }) => (
   <Document>
     <Page size="LETTER" style={coverLetterStyles.page}>
+      <Text style={coverLetterStyles.date}>{letter.date}</Text>
       <Text style={coverLetterStyles.salutation}>{letter.salutation}</Text>
 
       {letter.paragraphs.map((paragraph, idx) => (
