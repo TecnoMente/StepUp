@@ -8,6 +8,8 @@ export default function ResumeClient({ sessionId }: { sessionId: string | null }
   const router = useRouter();
 
   const [resume, setResume] = useState<TailoredResume | null>(null);
+  const [companyName, setCompanyName] = useState<string | null>(null);
+  const [position, setPosition] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingLetter, setIsGeneratingLetter] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -22,6 +24,8 @@ export default function ResumeClient({ sessionId }: { sessionId: string | null }
       .then((res) => res.json())
       .then((data) => {
         if (data.resumeJson) setResume(JSON.parse(data.resumeJson));
+        setCompanyName(data.companyName || null);
+        setPosition(data.position || null);
       })
       .catch((err) => console.error('Error fetching resume:', err))
       .finally(() => setIsLoading(false));
@@ -85,6 +89,11 @@ export default function ResumeClient({ sessionId }: { sessionId: string | null }
         <h1 className="text-4xl md:text-5xl font-serif font-bold text-beige-50 mb-3">
           Your Tailored Resume is Ready.
         </h1>
+        {(companyName || position) && (
+          <p className="text-xl text-beige-50/95 mb-2">
+            {companyName && position ? `${companyName} - ${position}` : companyName || position}
+          </p>
+        )}
         <p className="text-lg text-beige-50/90">Optimized for ATS. Editable before you apply.</p>
       </div>
 

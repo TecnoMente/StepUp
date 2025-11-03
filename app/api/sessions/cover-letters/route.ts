@@ -17,6 +17,8 @@ export async function GET() {
         id: true,
         createdAt: true,
         atsScore: true,
+        companyName: true,
+        position: true,
       },
     });
 

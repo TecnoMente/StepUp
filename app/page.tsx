@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 export default function HomePage() {
   const router = useRouter();
   const [jobDescription, setJobDescription] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [position, setPosition] = useState('');
   const [extraInfo, setExtraInfo] = useState('');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [loadingAction, setLoadingAction] = useState<null | 'resume' | 'cover'>(null);
@@ -56,7 +58,7 @@ export default function HomePage() {
       const termsRes = await fetch('/api/generate/ats-terms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, jobDescription }),
+        body: JSON.stringify({ sessionId, jobDescription, companyName, position }),
       });
 
       if (!termsRes.ok) {
@@ -101,11 +103,27 @@ export default function HomePage() {
         {/* Card 1: Paste Job Description */}
         <div className="card-beige">
           <h2 className="text-xl font-serif font-bold mb-4 text-ink-900">
-            Paste Job Description
+            Job Details
           </h2>
+          <div className="space-y-3 mb-4">
+            <input
+              type="text"
+              className="w-full p-3 border-2 border-ink-700/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-300 focus:border-transparent"
+              placeholder="Company Name (e.g., Google)"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+            />
+            <input
+              type="text"
+              className="w-full p-3 border-2 border-ink-700/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-300 focus:border-transparent"
+              placeholder="Position (e.g., Software Engineer)"
+              value={position}
+              onChange={(e) => setPosition(e.target.value)}
+            />
+          </div>
           <textarea
-            className="w-full h-64 p-4 border-2 border-ink-700/20 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-gold-300 focus:border-transparent"
-            placeholder="Enter job description or paste below;"
+            className="w-full h-48 p-4 border-2 border-ink-700/20 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-gold-300 focus:border-transparent"
+            placeholder="Paste job description here..."
             value={jobDescription}
             onChange={(e) => setJobDescription(e.target.value)}
           />
@@ -208,7 +226,7 @@ export default function HomePage() {
                 const termsRes = await fetch('/api/generate/ats-terms', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ sessionId, jobDescription }),
+                  body: JSON.stringify({ sessionId, jobDescription, companyName, position }),
                 });
 
                 if (!termsRes.ok) {

@@ -6,7 +6,7 @@ import { getLLMClient } from '@/lib/llm/client';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { sessionId, jobDescription } = body;
+    const { sessionId, jobDescription, companyName, position } = body;
 
     if (!sessionId) {
       return NextResponse.json({ error: 'sessionId is required' }, { status: 400 });
@@ -26,6 +26,8 @@ export async function POST(request: NextRequest) {
       data: {
         jdText: jobDescription,
         terms: JSON.stringify(atsTerms),
+        companyName: companyName || null,
+        position: position || null,
       },
     });
 

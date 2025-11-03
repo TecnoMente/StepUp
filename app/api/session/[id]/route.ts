@@ -29,11 +29,13 @@ export async function PATCH(
 ) {
   try {
     const body = await request.json();
-    const { resumeJson, letterJson } = body;
+    const { resumeJson, letterJson, companyName, position } = body;
 
-    const updateData: { resumeJson?: string; letterJson?: string } = {};
+    const updateData: { resumeJson?: string; letterJson?: string; companyName?: string | null; position?: string | null } = {};
     if (resumeJson !== undefined) updateData.resumeJson = resumeJson;
     if (letterJson !== undefined) updateData.letterJson = letterJson;
+    if (companyName !== undefined) updateData.companyName = companyName;
+    if (position !== undefined) updateData.position = position;
 
     const session = await prisma.session.update({
       where: { id: params.id },
