@@ -3,6 +3,8 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { TailoredCoverLetter } from '@/lib/types';
+import ATSKeyTermsDropdown from '@/components/ATSKeyTermsDropdown';
+import { getMatchedTermsFromCoverLetter } from '@/lib/utils/validation';
 
 function CoverLetterPageContent() {
   const router = useRouter();
@@ -10,6 +12,7 @@ function CoverLetterPageContent() {
   const sessionId = searchParams.get('sessionId');
 
   const [letter, setLetter] = useState<TailoredCoverLetter | null>(null);
+  const [allTerms, setAllTerms] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isGeneratingResume, setIsGeneratingResume] = useState(false);
@@ -26,6 +29,9 @@ function CoverLetterPageContent() {
       .then((data) => {
         if (data.letterJson) {
           setLetter(JSON.parse(data.letterJson));
+        }
+        if (data.terms) {
+          setAllTerms(JSON.parse(data.terms));
         }
       })
       .catch((err) => console.error('Error fetching cover letter:', err))
@@ -201,18 +207,12 @@ function CoverLetterPageContent() {
             ATS Alignment
           </h2>
 
-          {/* Circular Badge */}
-          <div className="flex justify-center mb-8">
-            <div className="w-40 h-40 rounded-full border-4 border-gold-300 flex flex-col items-center justify-center bg-beige-50">
-              <div className="text-5xl font-bold text-ink-900">
-                {letter.matched_term_count}
-              </div>
-              <div className="text-sm font-semibold text-ink-700 text-center">
-                ATS Terms
-                <br />
-                Matched
-              </div>
-            </div>
+          {/* Key Terms Dropdown */}
+          <div className="mb-8">
+            <ATSKeyTermsDropdown
+              allTerms={allTerms}
+              matchedTerms={getMatchedTermsFromCoverLetter(letter)}
+            />
           </div>
 
           {/* Checklist */}

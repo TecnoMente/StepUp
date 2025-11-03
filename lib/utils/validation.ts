@@ -351,3 +351,31 @@ export function recalculateMatchedTermsForCoverLetter(letter: TailoredCoverLette
 
   return uniqueTerms.size;
 }
+
+// Helper to get array of matched terms from resume
+export function getMatchedTermsFromResume(resume: TailoredResume): string[] {
+  const uniqueTerms = new Set<string>();
+
+  for (const section of resume.sections) {
+    for (const item of section.items) {
+      if (item.bullets) {
+        for (const bullet of item.bullets) {
+          bullet.matched_terms.forEach((term) => uniqueTerms.add(term));
+        }
+      }
+    }
+  }
+
+  return Array.from(uniqueTerms);
+}
+
+// Helper to get array of matched terms from cover letter
+export function getMatchedTermsFromCoverLetter(letter: TailoredCoverLetter): string[] {
+  const uniqueTerms = new Set<string>();
+
+  for (const paragraph of letter.paragraphs) {
+    paragraph.matched_terms.forEach((term) => uniqueTerms.add(term));
+  }
+
+  return Array.from(uniqueTerms);
+}
