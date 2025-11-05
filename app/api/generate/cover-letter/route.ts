@@ -62,6 +62,14 @@ export async function POST(request: NextRequest) {
       throw lastError || new Error('Failed to generate cover letter after retries');
     }
 
+    // Fix literal \n in closing and salutation fields (convert to actual newlines)
+    if (tailoredLetter.closing) {
+      tailoredLetter.closing = tailoredLetter.closing.replace(/\\n/g, '\n');
+    }
+    if (tailoredLetter.salutation) {
+      tailoredLetter.salutation = tailoredLetter.salutation.replace(/\\n/g, '\n');
+    }
+
     // Attempt to repair evidence spans if the model produced small indexing mistakes
     tryRepairEvidenceSpans(tailoredLetter, {
       jd: session.jdText,
@@ -111,6 +119,14 @@ export async function POST(request: NextRequest) {
             hint,
           });
 
+          // Fix literal \n in closing and salutation fields
+          if (finalLetter.closing) {
+            finalLetter.closing = finalLetter.closing.replace(/\\n/g, '\n');
+          }
+          if (finalLetter.salutation) {
+            finalLetter.salutation = finalLetter.salutation.replace(/\\n/g, '\n');
+          }
+
           tryRepairEvidenceSpans(finalLetter, {
             jd: session.jdText,
             resume: session.resumeText,
@@ -139,6 +155,14 @@ export async function POST(request: NextRequest) {
             forceOnePage: true,
             hint: 'PDF rendering failed; please produce a concise one-page cover letter',
           });
+
+          // Fix literal \n in closing and salutation fields
+          if (finalLetter.closing) {
+            finalLetter.closing = finalLetter.closing.replace(/\\n/g, '\n');
+          }
+          if (finalLetter.salutation) {
+            finalLetter.salutation = finalLetter.salutation.replace(/\\n/g, '\n');
+          }
 
           tryRepairEvidenceSpans(finalLetter, {
             jd: session.jdText,
