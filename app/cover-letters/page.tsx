@@ -7,6 +7,8 @@ interface CoverLetterSession {
   id: string;
   createdAt: string;
   atsScore: number | null;
+  companyName: string | null;
+  position: string | null;
 }
 
 export default function CoverLettersPage() {
@@ -65,8 +67,15 @@ export default function CoverLettersPage() {
           {sessions.map((session) => (
             <div key={session.id} className="card-beige hover:shadow-xl transition-shadow cursor-pointer" onClick={() => handleViewCoverLetter(session.id)}>
               <div className="flex justify-between items-start mb-4">
-                <div>
+                <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-bold text-ink-900">Cover Letter</h3>
+                  {(session.companyName || session.position) && (
+                    <p className="text-sm font-semibold text-ink-900 mb-1 truncate">
+                      {session.companyName && session.position
+                        ? `${session.companyName} - ${session.position}`
+                        : session.companyName || session.position}
+                    </p>
+                  )}
                   <p className="text-sm text-ink-700">
                     {new Date(session.createdAt).toLocaleDateString('en-US', {
                       month: 'short',
@@ -76,7 +85,7 @@ export default function CoverLettersPage() {
                   </p>
                 </div>
                 {session.atsScore !== null && (
-                  <div className="bg-gold-300 text-ink-900 px-3 py-1 rounded-full text-sm font-semibold">
+                  <div className="bg-gold-300 text-ink-900 px-3 py-1 rounded-full text-sm font-semibold flex-shrink-0 ml-2">
                     {session.atsScore} ATS
                   </div>
                 )}

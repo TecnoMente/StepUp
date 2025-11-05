@@ -12,6 +12,8 @@ function CoverLetterPageContent() {
   const sessionId = searchParams.get('sessionId');
 
   const [letter, setLetter] = useState<TailoredCoverLetter | null>(null);
+  const [companyName, setCompanyName] = useState<string | null>(null);
+  const [position, setPosition] = useState<string | null>(null);
   const [allTerms, setAllTerms] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -30,6 +32,8 @@ function CoverLetterPageContent() {
         if (data.letterJson) {
           setLetter(JSON.parse(data.letterJson));
         }
+        setCompanyName(data.companyName || null);
+        setPosition(data.position || null);
         if (data.terms) {
           setAllTerms(JSON.parse(data.terms));
         }
@@ -130,6 +134,11 @@ function CoverLetterPageContent() {
         <h1 className="text-4xl md:text-5xl font-serif font-bold text-beige-50 mb-3">
           Your Tailored Cover Letter is Ready.
         </h1>
+        {(companyName || position) && (
+          <p className="text-xl text-beige-50/95 mb-2">
+            {companyName && position ? `${companyName} - ${position}` : companyName || position}
+          </p>
+        )}
         <p className="text-lg text-beige-50/90">
           Optimized for ATS. Editable before you apply.
         </p>

@@ -16,9 +16,11 @@ model Session {
   updatedAt  DateTime @updatedAt
 
   // Raw text inputs
-  jdText     String?  // Job Description
-  resumeText String?  // Parsed resume text
-  extraText  String?  // Additional projects/skills
+  jdText      String?  // Job Description
+  resumeText  String?  // Parsed resume text
+  extraText   String?  // Additional projects/skills
+  companyName String?  // Company name for this application
+  position    String?  // Position/job title for this application
 
   // ATS terms extracted from JD
   terms      String   @default("[]") // JSON array of strings
