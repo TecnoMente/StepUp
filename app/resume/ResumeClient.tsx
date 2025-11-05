@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { TailoredResume } from '@/lib/types';
+import ATSKeyTermsDropdown from '@/components/ATSKeyTermsDropdown';
+import { getMatchedTermsFromResume } from '@/lib/utils/validation';
 
 export default function ResumeClient({ sessionId }: { sessionId: string | null }) {
   const router = useRouter();
@@ -10,6 +12,7 @@ export default function ResumeClient({ sessionId }: { sessionId: string | null }
   const [resume, setResume] = useState<TailoredResume | null>(null);
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [position, setPosition] = useState<string | null>(null);
+  const [allTerms, setAllTerms] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingLetter, setIsGeneratingLetter] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -26,6 +29,7 @@ export default function ResumeClient({ sessionId }: { sessionId: string | null }
         if (data.resumeJson) setResume(JSON.parse(data.resumeJson));
         setCompanyName(data.companyName || null);
         setPosition(data.position || null);
+        if (data.terms) setAllTerms(JSON.parse(data.terms));
       })
       .catch((err) => console.error('Error fetching resume:', err))
       .finally(() => setIsLoading(false));
@@ -274,11 +278,11 @@ export default function ResumeClient({ sessionId }: { sessionId: string | null }
         <div className="card-beige">
           <h2 className="text-2xl font-serif font-bold mb-6 text-center">ATS Alignment</h2>
 
-          <div className="flex justify-center mb-8">
-            <div className="w-40 h-40 rounded-full border-4 border-gold-300 flex flex-col items-center justify-center bg-beige-50">
-              <div className="text-5xl font-bold text-ink-900">{resume.matched_term_count}</div>
-              <div className="text-sm font-semibold text-ink-700 text-center">Key Terms<br/>Matched</div>
-            </div>
+          <div className="mb-8">
+            <ATSKeyTermsDropdown
+              allTerms={allTerms}
+              matchedTerms={getMatchedTermsFromResume(resume)}
+            />
           </div>
 
           <div className="space-y-4">
