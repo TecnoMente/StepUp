@@ -49,11 +49,16 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Invalid credentials');
         }
 
+        // Ensure email is a string for NextAuth User type
+        if (!user.email) {
+          throw new Error('User email not found');
+        }
+
         return {
           id: user.id,
           email: user.email,
-          name: user.name,
-          image: user.image,
+          name: user.name || undefined,
+          image: user.image || undefined,
         };
       },
     }),
