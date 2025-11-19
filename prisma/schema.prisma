@@ -1,5 +1,5 @@
 // Prisma schema for StepUp ATS Resume Generator
-// SQLite for local development (zero cost)
+// PostgreSQL for production with NextAuth.js
 
 generator client {
   provider = "prisma-client-js"
@@ -10,11 +10,67 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// NextAuth.js models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model AuthSession {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String        @id @default(cuid())
+  name          String?
+  email         String?       @unique
+  emailVerified DateTime?
+  password      String?       // Hashed password for email/password auth
+  image         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  accounts      Account[]
+  sessions      AuthSession[]
+  appSessions   Session[]     // User's resume sessions
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Application session (resume generation)
 model Session {
   id         String   @id @default(cuid())
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   expiresAt  DateTime? // Session expiration for security
+
+  // Link to user account
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Raw text inputs
   jdText      String?  // Job Description
@@ -38,4 +94,5 @@ model Session {
 
   @@index([createdAt])
   @@index([expiresAt]) // Index for efficient cleanup queries
+  @@index([userId])    // Index for user lookups
 }

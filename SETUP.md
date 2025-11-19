@@ -1,10 +1,11 @@
 # StepUp - Quick Setup Guide
 
-Welcome! This guide will help you get StepUp running on your machine in under 5 minutes.
+Welcome! This guide will help you get StepUp running on your machine in under 10 minutes.
 
 ## Prerequisites Checklist
 
 - [ ] Node.js 20+ installed ([Download here](https://nodejs.org/))
+- [ ] Docker Desktop installed ([Download here](https://www.docker.com/products/docker-desktop/))
 - [ ] Anthropic API key ([Get one here](https://console.anthropic.com/))
 - [ ] Git installed (already done since you cloned the repo)
 
@@ -17,26 +18,51 @@ node --version
 # Should show v20.x.x or higher
 ```
 
-### 2. Configure Your API Key
+### 2. Start Docker Desktop
 
-Edit the `.env` file that's already created in the root directory:
+Make sure Docker Desktop is running on your machine. You should see the Docker icon in your system tray.
+
+### 3. Configure Your API Key
+
+Edit the `.env` file in the root directory and add your Anthropic API key:
 
 ```bash
-# Open .env and replace "your-key-here-replace-this" with your actual API key
-# It should look like: sk-ant-api03-...
+# Open .env and add your actual API key
+ANTHROPIC_API_KEY=sk-ant-api03-your-actual-key-here
 ```
 
-The `.env` file contents:
+The `.env` file should contain:
 ```env
 ANTHROPIC_API_KEY=sk-ant-api03-your-actual-key-here
 LLM_PROVIDER=anthropic
-DATABASE_URL="file:./dev.db"
+DATABASE_URL=postgresql://stepup:stepup_dev_password@localhost:5432/stepup_dev
 SESSION_SECRET=development-secret-change-in-production
+NEXTAUTH_SECRET=your-secret-here
+NEXTAUTH_URL=http://localhost:3000
 ```
 
 **IMPORTANT**: Never commit your `.env` file to Git! It's already in `.gitignore`.
 
-### 3. Start the Development Server
+### 4. Start PostgreSQL Database
+
+```bash
+docker-compose up -d
+```
+
+This starts PostgreSQL in a Docker container. You should see:
+```
+Container stepup-postgres  Started
+```
+
+### 5. Set Up Database Schema
+
+```bash
+npm run db:push
+```
+
+This creates all the necessary database tables.
+
+### 6. Start the Development Server
 
 ```bash
 npm run dev
@@ -49,25 +75,35 @@ You should see:
   - Environments: .env
 ```
 
-### 4. Open in Browser
+### 7. Open in Browser
 
 Visit: [http://localhost:3000](http://localhost:3000)
 
-You should see the StepUp landing page with three cards!
+You should be redirected to the sign-in page!
 
 ## Testing the Application
 
-### Quick Test Flow
+### First Time: Create an Account
 
-1. **Paste a Job Description** (left card)
+1. **Sign Up**
+   - Click "create a new account"
+   - Enter your email and password (min 8 characters)
+   - Or use "Continue with Google" if you've set up Google OAuth
+
+2. **You're Logged In!**
+   - You'll be redirected to the main application
+
+### Generate Your First Resume
+
+1. **Paste a Job Description**
    - Try this sample:
    ```
    Software Engineer - Full Stack
    Looking for someone with React, TypeScript, and Node.js experience.
    ```
 
-2. **Upload Your Resume** (middle card)
-   - Use any PDF resume (sample will be provided if needed)
+2. **Upload Your Resume**
+   - Click "Upload Resume" and select a PDF file
 
 3. **Click "Generate Tailored Resume"**
    - This will call the Claude API (costs about $0.003 per resume)
@@ -75,7 +111,12 @@ You should see the StepUp landing page with three cards!
 4. **View Results**
    - See your tailored resume with ATS score
    - Generate a cover letter
-   - Download both as HTML (use Print → Save as PDF)
+   - Download both as PDFs
+
+5. **Access from Dashboard**
+   - Click "My Resumes" in the navigation
+   - See all your past resumes and cover letters
+   - Access them from any device after logging in
 
 ## Troubleshooting
 
@@ -84,6 +125,35 @@ You should see the StepUp landing page with three cards!
 - Make sure you've edited `.env` and added your real API key
 - Restart the dev server after changing `.env`
 
+### Docker/PostgreSQL issues
+
+**Can't connect to database:**
+```bash
+# Check if Docker is running
+docker ps
+
+# Restart PostgreSQL
+docker-compose down
+docker-compose up -d
+
+# Wait a few seconds for it to start, then:
+npm run db:push
+```
+
+**Database tables don't exist:**
+```bash
+# Push the schema again
+npm run db:push
+```
+
+**Reset database completely:**
+```bash
+# WARNING: This deletes all data!
+docker-compose down -v
+docker-compose up -d
+npm run db:push
+```
+
 ### Port 3000 already in use
 
 ```bash
@@ -91,13 +161,16 @@ You should see the StepUp landing page with three cards!
 PORT=3001 npm run dev
 ```
 
-### Database issues
+### Authentication issues
 
-```bash
-# Reset the database
-rm prisma/dev.db
-npm run db:push
-```
+**Can't sign in:**
+- Make sure PostgreSQL is running (`docker ps` should show `stepup-postgres`)
+- Check that `NEXTAUTH_SECRET` is set in `.env`
+- Clear browser cookies and try again
+
+**Google OAuth not working:**
+- Make sure you've set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env`
+- Check that redirect URIs are correct in Google Cloud Console
 
 ### Build errors
 
@@ -105,6 +178,7 @@ npm run db:push
 # Clean install
 rm -rf node_modules .next
 npm install
+npx prisma generate
 npm run build
 ```
 

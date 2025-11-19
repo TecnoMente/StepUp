@@ -2,11 +2,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/utils/db';
 import { rateLimit, getClientIp, RATE_LIMITS } from '@/lib/utils/rate-limit';
+import { requireAuth } from '@/lib/utils/auth-helpers';
 
 // Session expires after 7 days of inactivity (configurable)
 const SESSION_EXPIRY_HOURS = 24 * 7; // 7 days
 
 export async function POST(request: NextRequest) {
+  // Require authentication
+  const { user, response: authResponse } = await requireAuth();
+  if (authResponse) return authResponse;
+
   // Apply rate limiting to prevent session spam
   const ip = getClientIp(request);
   const rateLimitResult = rateLimit(ip, RATE_LIMITS.SESSION_CREATION);
@@ -35,6 +40,7 @@ export async function POST(request: NextRequest) {
     const session = await prisma.session.create({
       data: {
         expiresAt,
+        userId: user!.id, // Link session to authenticated user
       },
     });
 

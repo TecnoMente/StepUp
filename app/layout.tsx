@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import Image from 'next/image';
 import "./globals.css";
+import SessionProvider from '@/components/providers/SessionProvider';
+import Navigation from '@/components/Navigation';
 
 export const metadata: Metadata = {
   title: "StepUp - ATS Resume & Cover Letter Generator",
@@ -15,25 +16,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <nav className="bg-teal-900/50 backdrop-blur-sm border-b border-teal-800">
-          <div className="container-custom py-4 flex justify-between items-center">
-            <a href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <Image src="/beige_logo.png" alt="StepUp Logo" width={40} height={40} className="rounded-sm" />
-              <span className="text-2xl font-serif font-bold text-beige-50">StepUp</span>
-            </a>
-            <div className="flex gap-6 text-beige-50">
-              <a href="/resumes" className="hover:text-gold-300 transition-colors font-medium">
-                Resumes
-              </a>
-              <a href="/cover-letters" className="hover:text-gold-300 transition-colors font-medium">
-                Cover Letters
-              </a>
-            </div>
-          </div>
-        </nav>
-        <main className="min-h-[calc(100vh-80px)]">
-          {children}
-        </main>
+        <SessionProvider>
+          <Navigation />
+          <main className="min-h-[calc(100vh-80px)]">
+            {children}
+          </main>
+        </SessionProvider>
       </body>
     </html>
   );

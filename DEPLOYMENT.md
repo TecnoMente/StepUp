@@ -2,8 +2,11 @@
 
 This guide walks you through deploying StepUp securely to Vercel with a PostgreSQL database.
 
+**Note**: This guide is for deploying to production. For local development with Docker, see [DOCKER.md](./DOCKER.md).
+
 ## Security Features Implemented
 
+- ✅ **User Authentication**: Email/password + optional Google OAuth
 - ✅ **Session Expiration**: Sessions expire after 7 days of inactivity
 - ✅ **Automatic Cleanup**: Old sessions (>30 days) are automatically deleted daily
 - ✅ **Rate Limiting**: Prevents API abuse
@@ -13,6 +16,7 @@ This guide walks you through deploying StepUp securely to Vercel with a PostgreS
 - ✅ **Security Headers**: HTTPS enforcement, XSS protection, CSP, etc.
 - ✅ **Database Encryption**: PostgreSQL with encryption at rest
 - ✅ **Environment Secrets**: API keys encrypted in Vercel
+- ✅ **Protected Routes**: Must be logged in to use the application
 
 ## Prerequisites
 
@@ -20,6 +24,7 @@ This guide walks you through deploying StepUp securely to Vercel with a PostgreS
 2. Vercel account (free) - sign up at https://vercel.com
 3. Neon account (free) - sign up at https://neon.tech
 4. Anthropic API key - get from https://console.anthropic.com
+5. (Optional) Google OAuth credentials - for "Sign in with Google"
 
 ## Deployment Steps
 
