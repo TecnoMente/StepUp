@@ -8,6 +8,7 @@ import { generateResumePDF } from '@/lib/utils/pdf-generator';
 import pdf from 'pdf-parse';
 import type { TailoredResume, ResumeBullet, ResumeSection, ResumeItem } from '@/lib/types';
 import type { ResumePDFOptions } from '@/lib/utils/pdf-generator';
+import { rateLimit, getClientIp, RATE_LIMITS } from '@/lib/utils/rate-limit';
 
 // Minimal typing for pdf-parse result
 interface PDFParseResult {
@@ -15,6 +16,28 @@ interface PDFParseResult {
 }
 
 export async function POST(request: NextRequest) {
+  // Apply rate limiting
+  const ip = getClientIp(request);
+  const rateLimitResult = rateLimit(ip, RATE_LIMITS.RESUME_GENERATION);
+
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      {
+        error: 'Rate limit exceeded. Please try again later.',
+        retryAfter: Math.ceil((rateLimitResult.reset - Date.now()) / 1000),
+      },
+      {
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+          'X-RateLimit-Reset': rateLimitResult.reset.toString(),
+          'Retry-After': Math.ceil((rateLimitResult.reset - Date.now()) / 1000).toString(),
+        },
+      }
+    );
+  }
+
   try {
     const body = await request.json();
     const { sessionId, extraText } = body;

@@ -131,15 +131,20 @@ Claude offers $5 free credits when you sign up, which covers ~1,600 resume gener
 - **Bugs?** Check the main README troubleshooting section
 - **API Issues?** Check your API key at [Anthropic Console](https://console.anthropic.com/)
 
-## Production Checklist (when ready to deploy)
+## Production Deployment
 
-- [ ] Get production Claude API key
-- [ ] Update `SESSION_SECRET` in `.env`
-- [ ] Switch to PostgreSQL (from SQLite)
-- [ ] Add rate limiting
-- [ ] Set up error monitoring (e.g., Sentry)
-- [ ] Configure CORS if needed
-- [ ] Add user authentication
+Ready to deploy for others to use? See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for a complete guide.
+
+**Security features already implemented:**
+- ✅ Session expiration (7 days)
+- ✅ Automatic cleanup (30-day retention)
+- ✅ Rate limiting (prevents API abuse)
+- ✅ Security headers (HTTPS, CSP, XSS protection)
+- ✅ PostgreSQL support with encryption
+
+**Recommended hosting**: Vercel (free tier) + Neon PostgreSQL (free tier)
+
+**Estimated cost**: ~$1.50/month for 500 resume generations
 
 ---
 
