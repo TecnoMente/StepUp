@@ -44,31 +44,35 @@ export default function SignInPage() {
     signIn('google', { callbackUrl });
   };
 
+  const hasGoogleOAuth = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED === 'true';
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-center text-3xl font-serif font-bold text-beige-50">
             Sign in to StepUp
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-beige-50/80">
             Or{' '}
             <Link
               href="/auth/signup"
-              className="font-medium text-blue-600 hover:text-blue-500"
+              className="font-medium text-gold-300 hover:text-gold-300/80"
             >
               create a new account
             </Link>
           </p>
         </div>
 
-        <div className="mt-8 space-y-6">
-          {/* Google Sign In */}
-          <button
-            onClick={handleGoogleSignIn}
-            type="button"
-            className="w-full flex items-center justify-center gap-3 px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
+        <div className="mt-8 card-beige space-y-6">
+          {/* Google Sign In - Only show if enabled */}
+          {hasGoogleOAuth && (
+            <>
+              <button
+                onClick={handleGoogleSignIn}
+                type="button"
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-ink-700/20 rounded-lg shadow-sm bg-white text-sm font-medium text-ink-900 hover:bg-gray-50 transition-colors"
+              >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
                 fill="#4285F4"
@@ -92,19 +96,21 @@ export default function SignInPage() {
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
+              <div className="w-full border-t border-ink-700/20" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-50 text-gray-500">
+              <span className="px-2 bg-beige-50 text-ink-700">
                 Or continue with email
               </span>
             </div>
           </div>
+            </>
+          )}
 
           {/* Email/Password Form */}
           <form onSubmit={handleEmailSignIn} className="space-y-6">
             {error && (
-              <div className="rounded-md bg-red-50 p-4">
+              <div className="rounded-lg bg-red-100 border border-red-300 p-4">
                 <p className="text-sm text-red-800">{error}</p>
               </div>
             )}
@@ -112,7 +118,7 @@ export default function SignInPage() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-ink-900 mb-2"
               >
                 Email address
               </label>
@@ -123,14 +129,15 @@ export default function SignInPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="block w-full px-4 py-3 border border-ink-700/20 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-800 focus:border-teal-800 bg-white text-ink-900"
+                placeholder="you@example.com"
               />
             </div>
 
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-ink-900 mb-2"
               >
                 Password
               </label>
@@ -141,14 +148,15 @@ export default function SignInPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="block w-full px-4 py-3 border border-ink-700/20 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-800 focus:border-teal-800 bg-white text-ink-900"
+                placeholder="••••••••"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
