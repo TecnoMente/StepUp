@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 
 export default function HomePage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const [jobDescription, setJobDescription] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [position, setPosition] = useState('');

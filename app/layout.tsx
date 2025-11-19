@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from 'next/image';
 import "./globals.css";
 import SessionProvider from '@/components/providers/SessionProvider';
 import Navigation from '@/components/Navigation';
