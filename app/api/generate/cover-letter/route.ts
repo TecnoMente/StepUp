@@ -5,8 +5,31 @@ import { getLLMClient } from '@/lib/llm/client';
 import { validateTailoredCoverLetter, tryRepairEvidenceSpans, recalculateMatchedTermsForCoverLetter } from '@/lib/utils/validation';
 import { generateCoverLetterPDF } from '@/lib/utils/pdf-generator';
 import pdf from 'pdf-parse';
+import { rateLimit, getClientIp, RATE_LIMITS } from '@/lib/utils/rate-limit';
 
 export async function POST(request: NextRequest) {
+  // Apply rate limiting
+  const ip = getClientIp(request);
+  const rateLimitResult = rateLimit(ip, RATE_LIMITS.COVER_LETTER_GENERATION);
+
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      {
+        error: 'Rate limit exceeded. Please try again later.',
+        retryAfter: Math.ceil((rateLimitResult.reset - Date.now()) / 1000),
+      },
+      {
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+          'X-RateLimit-Reset': rateLimitResult.reset.toString(),
+          'Retry-After': Math.ceil((rateLimitResult.reset - Date.now()) / 1000).toString(),
+        },
+      }
+    );
+  }
+
   try {
     const body = await request.json();
     const { sessionId } = body;
