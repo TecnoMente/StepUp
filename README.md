@@ -11,6 +11,7 @@ StepUp is a full-stack web application that helps job seekers optimize their res
 - **Cover Letter Generation**: Create personalized cover letters based on your resume and job description
 - **Zero Hallucination**: Evidence-based validation ensures no fabricated information
 - **PDF Support**: Upload PDF resumes and download tailored documents
+- **Authentication & Security**: User accounts with email/password or Google OAuth, plus email allowlist for access control
 - **Local-First**: SQLite database for zero-cost local development
 
 ## Tech Stack
@@ -60,12 +61,21 @@ ANTHROPIC_API_KEY=sk-ant-your-key-here
 # LLM Provider (default: anthropic)
 LLM_PROVIDER=anthropic
 
-# Database (SQLite for local development)
-DATABASE_URL="file:./dev.db"
+# Database (PostgreSQL for production, SQLite for local dev)
+DATABASE_URL=postgresql://stepup:stepup_dev_password@localhost:5432/stepup_dev
 
 # Session secret (generate with: openssl rand -base64 32)
 SESSION_SECRET=your-random-secret-here
+
+# NextAuth.js secret (generate with: openssl rand -base64 32)
+NEXTAUTH_SECRET=your-nextauth-secret-here
+NEXTAUTH_URL=http://localhost:3000
+
+# Email Allowlist (comma-separated, REQUIRED for access)
+ALLOWED_EMAILS=your-email@example.com,teammate@example.com
 ```
+
+**Security Note**: The application is secure by default. You MUST add email addresses to `ALLOWED_EMAILS` to grant access. If left empty, no one can sign up or sign in.
 
 ### 4. Set up the database
 
@@ -142,6 +152,23 @@ stepup/
 ```
 
 ## Key Features Explained
+
+### Authentication & Access Control
+
+StepUp includes built-in authentication with flexible access control:
+
+- **NextAuth.js Integration**: Secure authentication with JWT sessions
+- **Multiple Sign-In Methods**: Email/password and Google OAuth
+- **Email Allowlist**: Restrict access to specific email addresses via `ALLOWED_EMAILS` environment variable
+- **Protected Routes**: Middleware automatically protects all app routes, redirecting unauthenticated users to sign-in
+- **User Sessions**: Each user's resume generations are linked to their account
+
+Access control is enabled by default:
+1. **Required**: Set `ALLOWED_EMAILS` in `.env` (e.g., `tecnomente@umich.edu,user@example.com`)
+2. Users not on the allowlist will be blocked with an access denied page
+3. If `ALLOWED_EMAILS` is empty, NO ONE can access (secure by default)
+
+See `lib/utils/allowlist.ts` and `middleware.ts` for implementation details.
 
 ### Non-Hallucination Contract
 

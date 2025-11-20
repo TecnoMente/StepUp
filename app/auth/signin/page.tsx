@@ -1,19 +1,53 @@
 'use client';
 
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 
 function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/';
+  const authError = searchParams.get('error');
+  const emailFromUrl = searchParams.get('email');
+  const { data: session, status } = useSession();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showAccessDenied, setShowAccessDenied] = useState(false);
+  const [deniedEmail, setDeniedEmail] = useState<string | null>(null);
+
+  // Check if user returned from failed OAuth attempt or has error in URL
+  useEffect(() => {
+    // Check for email in URL parameters (from signIn callback)
+    if (emailFromUrl && authError === 'unauthorized') {
+      setShowAccessDenied(true);
+      setDeniedEmail(decodeURIComponent(emailFromUrl));
+      return;
+    }
+
+    // Fallback: Check sessionStorage for OAuth attempt
+    if (typeof window !== 'undefined') {
+      const oauthAttempt = sessionStorage.getItem('oauth-attempt');
+      const rejectedEmail = sessionStorage.getItem('oauth-rejected-email');
+      const returnedFromOAuth = searchParams.get('callbackUrl');
+
+      // If we attempted OAuth and we're back on signin without a session, it failed
+      if (oauthAttempt && returnedFromOAuth && status === 'unauthenticated') {
+        sessionStorage.removeItem('oauth-attempt');
+        setShowAccessDenied(true);
+
+        // Show the rejected email if we have it
+        if (rejectedEmail) {
+          setDeniedEmail(rejectedEmail);
+          sessionStorage.removeItem('oauth-rejected-email');
+        }
+      }
+    }
+  }, [searchParams, status, emailFromUrl, authError]);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +62,20 @@ function SignInForm() {
       });
 
       if (result?.error) {
+        // Check if error is due to unauthorized email
+        if (result.error.includes('UNAUTHORIZED_EMAIL')) {
+          router.push('/auth/access-denied');
+          return;
+        }
         setError('Invalid email or password');
+      } else if (result?.url) {
+        // Check if redirected to access-denied
+        if (result.url.includes('/auth/access-denied')) {
+          router.push('/auth/access-denied');
+          return;
+        }
+        router.push(callbackUrl);
+        router.refresh();
       } else {
         router.push(callbackUrl);
         router.refresh();
@@ -41,6 +88,9 @@ function SignInForm() {
   };
 
   const handleGoogleSignIn = () => {
+    // For OAuth, we need to use full redirect
+    // Store a flag to check for errors after callback
+    sessionStorage.setItem('oauth-attempt', 'true');
     signIn('google', { callbackUrl });
   };
 
@@ -109,7 +159,33 @@ function SignInForm() {
 
           {/* Email/Password Form */}
           <form onSubmit={handleEmailSignIn} className="space-y-6">
-            {error && (
+            {(authError || showAccessDenied) && (
+              <div className="rounded-lg bg-red-100 border border-red-300 p-4">
+                <p className="text-sm font-semibold text-red-900 mb-2">Access Denied</p>
+                {deniedEmail && (
+                  <p className="text-sm text-red-800 mb-2">
+                    The email <span className="font-semibold">{deniedEmail}</span> is not authorized to access this application.
+                  </p>
+                )}
+                {!deniedEmail && (
+                  <p className="text-sm text-red-800 mb-3">
+                    Your email address is not authorized to access this application.
+                  </p>
+                )}
+                <div className="bg-red-50 rounded p-3 border-t border-red-200 mt-3">
+                  <p className="text-xs text-red-700 mb-1">For access, contact:</p>
+                  <p className="text-sm font-semibold text-red-900">Team Tecnomente</p>
+                  <a
+                    href="mailto:tecnomente@umich.edu"
+                    className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    tecnomente@umich.edu
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {error && !authError && !showAccessDenied && (
               <div className="rounded-lg bg-red-100 border border-red-300 p-4">
                 <p className="text-sm text-red-800">{error}</p>
               </div>
