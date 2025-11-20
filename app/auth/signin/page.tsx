@@ -11,7 +11,7 @@ function SignInForm() {
   const callbackUrl = searchParams.get('callbackUrl') || '/';
   const authError = searchParams.get('error');
   const emailFromUrl = searchParams.get('email');
-  const { data: session, status } = useSession();
+  const { status } = useSession();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
