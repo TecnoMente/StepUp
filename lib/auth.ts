@@ -6,6 +6,7 @@ import GoogleProvider from 'next-auth/providers/google';
 import { prisma } from './utils/db';
 import bcrypt from 'bcryptjs';
 import type { Adapter } from 'next-auth/adapters';
+import { isEmailAllowed } from './utils/allowlist';
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as Adapter,
@@ -16,6 +17,16 @@ export const authOptions: NextAuthOptions = {
           GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+            async profile(profile) {
+              // Don't throw error here - let signIn callback handle it
+              // This allows us to pass the email to the error page
+              return {
+                id: profile.sub,
+                name: profile.name,
+                email: profile.email,
+                image: profile.picture,
+              };
+            },
           }),
         ]
       : []),
@@ -30,6 +41,11 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error('Invalid credentials');
+        }
+
+        // Check if email is on the allowlist BEFORE checking credentials
+        if (!isEmailAllowed(credentials.email)) {
+          throw new Error('UNAUTHORIZED_EMAIL');
         }
 
         const user = await prisma.user.findUnique({
@@ -65,7 +81,15 @@ export const authOptions: NextAuthOptions = {
   ],
   pages: {
     signIn: '/auth/signin',
-    error: '/auth/error',
+    error: '/auth/error', // NextAuth error page
+  },
+  events: {
+    async signIn({ user }) {
+      // Additional check during sign-in event
+      if (user.email && !isEmailAllowed(user.email)) {
+        throw new Error('UNAUTHORIZED_EMAIL');
+      }
+    },
   },
   session: {
     strategy: 'jwt',
@@ -75,14 +99,32 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.email = user.email;
       }
       return token;
     },
     async session({ session, token }) {
+      // Check allowlist on every session request
+      if (token.email && !isEmailAllowed(token.email as string)) {
+        throw new Error('UNAUTHORIZED_EMAIL');
+      }
+
       if (session.user) {
         session.user.id = token.id as string;
       }
       return session;
+    },
+    async signIn({ user, account }) {
+      // Final check before allowing sign-in
+      if (user.email && !isEmailAllowed(user.email)) {
+        // For OAuth providers, redirect to signin with email in query
+        if (account?.provider === 'google') {
+          const encodedEmail = encodeURIComponent(user.email);
+          return `/auth/signin?error=unauthorized&email=${encodedEmail}`;
+        }
+        return '/auth/access-denied';
+      }
+      return true;
     },
   },
   secret: process.env.NEXTAUTH_SECRET,

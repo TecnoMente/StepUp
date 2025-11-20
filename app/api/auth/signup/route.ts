@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/utils/db';
 import bcrypt from 'bcryptjs';
+import { isEmailAllowed, isValidEmailFormat } from '@/lib/utils/allowlist';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,6 +14,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Email and password are required' },
         { status: 400 }
+      );
+    }
+
+    // Validate email format
+    if (!isValidEmailFormat(email)) {
+      return NextResponse.json(
+        { error: 'Invalid email format' },
+        { status: 400 }
+      );
+    }
+
+    // Check if email is on the allowlist
+    if (!isEmailAllowed(email)) {
+      return NextResponse.json(
+        { error: 'This email is not authorized to sign up. Please contact an administrator for access.' },
+        { status: 403 }
       );
     }
 
