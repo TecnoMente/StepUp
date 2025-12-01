@@ -10,7 +10,15 @@ interface ATSKeyTermsDropdownProps {
 export default function ATSKeyTermsDropdown({ allTerms, matchedTerms }: ATSKeyTermsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const matchedCount = matchedTerms.length;
+  // Normalize terms for case-insensitive comparison
+  const normalizedAllTerms = allTerms.map(t => t.toLowerCase());
+
+  // Only count matched terms that are actually in the allTerms list (case-insensitive)
+  const validMatchedTerms = matchedTerms.filter(term =>
+    normalizedAllTerms.includes(term.toLowerCase())
+  );
+
+  const matchedCount = validMatchedTerms.length;
   const totalCount = allTerms.length;
 
   return (
@@ -44,7 +52,10 @@ export default function ATSKeyTermsDropdown({ allTerms, matchedTerms }: ATSKeyTe
         <div className="absolute z-10 mt-2 w-full bg-white rounded-lg shadow-lg border-2 border-gold-300 max-h-80 overflow-y-auto">
           <div className="p-4 space-y-2">
             {allTerms.map((term, index) => {
-              const isMatched = matchedTerms.includes(term);
+              // Case-insensitive matching
+              const isMatched = validMatchedTerms.some(
+                matched => matched.toLowerCase() === term.toLowerCase()
+              );
 
               return (
                 <div
