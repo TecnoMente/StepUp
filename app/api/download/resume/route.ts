@@ -39,8 +39,18 @@ export async function GET(request: NextRequest) {
     // Generate PDF buffer using saved options
     const pdfBuffer = await generateResumePDF(resume, pdfOptions);
 
-    // Create a safe filename from the user's name
-    const safeFileName = resume.name.replace(/[^a-zA-Z0-9]/g, '_');
+    // Create a safe filename in format: FirstNameLastNameCompanyName.pdf
+    const nameParts = resume.name.trim().split(/\s+/);
+    const firstName = nameParts[0] || 'Resume';
+    const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+    const companyName = session.companyName || 'Company';
+
+    // Remove non-alphanumeric characters from each part
+    const safeFirstName = firstName.replace(/[^a-zA-Z0-9]/g, '');
+    const safeLastName = lastName.replace(/[^a-zA-Z0-9]/g, '');
+    const safeCompanyName = companyName.replace(/[^a-zA-Z0-9]/g, '');
+
+    const safeFileName = `${safeFirstName}${safeLastName}${safeCompanyName}`;
 
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
