@@ -11,6 +11,7 @@ export interface ResumeBullet {
   text: string;
   evidence_spans: EvidenceSpan[];
   matched_terms: string[];
+  change_rationale?: string; // Explanation for why this bullet was modified/reworded from original
 }
 
 export interface ResumeItem {
@@ -19,6 +20,8 @@ export interface ResumeItem {
   location?: string;
   dateRange?: string;
   bullets?: ResumeBullet[];
+  title_rationale?: string; // Explanation for why title was modified
+  organization_rationale?: string; // Explanation for why organization was modified
 }
 
 export interface ResumeSection {
@@ -34,6 +37,7 @@ export interface TailoredResume {
   linkedin?: string;
   github?: string;
   summary?: string;
+  summary_rationale?: string; // Explanation for why summary was modified
   sections: ResumeSection[];
   matched_term_count: number;
 }

@@ -34,16 +34,28 @@ export default function ResumeComparisonModal({
   // Helper function to check if text appears in original resume (with stricter matching)
   const isTextInOriginal = (text: string): boolean => {
     if (!text) return true;
+
+    // First check: exact substring match (case-insensitive)
+    // This catches unchanged titles, organizations, etc.
+    if (originalResumeText.toLowerCase().includes(text.toLowerCase().trim())) {
+      return true;
+    }
+
     const normalizedText = text.toLowerCase().replace(/[^\w\s]/g, '').trim();
     const normalizedOriginal = originalResumeText.toLowerCase().replace(/[^\w\s]/g, '');
+
+    // Second check: normalized exact match
+    if (normalizedOriginal.includes(normalizedText)) {
+      return true;
+    }
 
     // Check if at least 85% of the words appear in sequence in the original
     const words = normalizedText.split(/\s+/);
     if (words.length === 0) return true;
 
-    // For short texts (< 4 words), require exact match
+    // For short texts (< 4 words), we already checked exact match above, so this is changed
     if (words.length < 4) {
-      return normalizedOriginal.includes(normalizedText);
+      return false;
     }
 
     // For longer texts, check if significant portion exists (stricter: 85%)
@@ -202,8 +214,8 @@ export default function ResumeComparisonModal({
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-ink-900">Tailored Resume</h3>
                 <div className="flex items-center gap-2 text-xs text-ink-700">
-                  <span className="bg-yellow-100 px-2 py-1 rounded">Modified/Reworded</span>
-                  <span>from original</span>
+                  <span className="bg-yellow-100 px-2 py-1 rounded">Changed</span>
+                  <span>(hover for reason)</span>
                 </div>
               </div>
               <div className="bg-white rounded-lg shadow-lg p-6 overflow-auto min-h-0 flex-1" style={{ fontFamily: 'Helvetica, Arial, sans-serif', fontSize: '10pt', lineHeight: '1.15' }}>
@@ -247,8 +259,8 @@ export default function ResumeComparisonModal({
                             {/* First line: Organization (bold) on left, Location on right */}
                             <div className="flex justify-between items-start mb-0">
                               <strong
-                                className={`font-bold ${!isTextInOriginal(item.organization || item.title) ? 'bg-yellow-100 px-1 rounded' : ''}`}
-                                title={!isTextInOriginal(item.organization || item.title) ? 'Modified or reworded from original' : 'Unchanged from original'}
+                                className={`font-bold ${item.organization_rationale ? 'bg-yellow-100 px-1 rounded' : ''}`}
+                                title={item.organization_rationale ? `Changed: ${item.organization_rationale}` : ''}
                               >
                                 {item.organization || item.title}
                               </strong>
@@ -258,8 +270,8 @@ export default function ResumeComparisonModal({
                             {item.organization && item.title && (
                               <div className="flex justify-between items-start">
                                 <span
-                                  className={`italic ${!isTextInOriginal(item.title) ? 'bg-yellow-100 px-1 rounded' : ''}`}
-                                  title={!isTextInOriginal(item.title) ? 'Modified or reworded from original' : 'Unchanged from original'}
+                                  className={`italic ${item.title_rationale ? 'bg-yellow-100 px-1 rounded' : ''}`}
+                                  title={item.title_rationale ? `Changed: ${item.title_rationale}` : ''}
                                 >
                                   {item.title}
                                 </span>
@@ -280,12 +292,13 @@ export default function ResumeComparisonModal({
                         {item.bullets && (
                           <ul className="ml-4.5 mt-0.5" style={{ paddingLeft: '18px', listStyleType: 'disc' }}>
                             {item.bullets.map((bullet, bulletIdx) => {
-                              const isChanged = !isTextInOriginal(bullet.text);
+                              // Only highlight if there's an actual rationale provided
+                              const shouldHighlight = Boolean(bullet.change_rationale);
                               return (
                                 <li
                                   key={bulletIdx}
-                                  className={`mb-0.5 ${isChanged ? 'bg-yellow-100 px-1 rounded' : ''}`}
-                                  title={isChanged ? 'Modified or reworded from original' : 'Unchanged from original'}
+                                  className={`mb-0.5 ${shouldHighlight ? 'bg-yellow-100 px-1 rounded' : ''}`}
+                                  title={bullet.change_rationale ? `Changed: ${bullet.change_rationale}` : ''}
                                   style={{ lineHeight: '1.15' }}
                                 >
                                   {bullet.text}

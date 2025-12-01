@@ -196,6 +196,10 @@ export class LLMClient {
                 type: 'string',
                 description: 'Optional professional summary',
               },
+              summary_rationale: {
+                type: 'string',
+                description: 'If summary was modified from original, explain why (e.g., "Added keywords: project management", "Condensed for brevity"). Leave empty if unchanged.',
+              },
               sections: {
                 type: 'array',
                 description: 'Resume sections (Education, Experience, Projects, Skills)',
@@ -212,6 +216,14 @@ export class LLMClient {
                           organization: { type: 'string' },
                           location: { type: 'string' },
                           dateRange: { type: 'string' },
+                          title_rationale: {
+                            type: 'string',
+                            description: 'If title was modified from original, explain why. Leave empty if unchanged.',
+                          },
+                          organization_rationale: {
+                            type: 'string',
+                            description: 'If organization was modified from original, explain why. Leave empty if unchanged.',
+                          },
                           bullets: {
                             type: 'array',
                             items: {
@@ -236,6 +248,10 @@ export class LLMClient {
                                 matched_terms: {
                                   type: 'array',
                                   items: { type: 'string' },
+                                },
+                                change_rationale: {
+                                  type: 'string',
+                                  description: 'If bullet was modified/reworded from original, explain why (e.g., "Added quantifiable metrics", "Emphasized leadership", "Reworded to match JD keywords: teamwork"). Leave empty if unchanged or if this is a completely new bullet.',
                                 },
                               },
                               required: ['text', 'evidence_spans', 'matched_terms'],
@@ -483,6 +499,15 @@ ${input.terms.join(', ')}
   - If you can't find evidence for a claim in the resume, DON'T include it
   - If a metric/number is not in the resume, don't make one up
 
+7. **CHANGE RATIONALE (NEW REQUIREMENT):**
+  - For EVERY bullet you modify or reword from the original resume, provide a brief change_rationale explaining why
+  - Rationale should be concise (5-15 words) and specific
+  - Examples: "Added quantifiable metrics to show impact", "Reworded to include JD keywords: collaboration, agile", "Emphasized leadership aspect", "Condensed for brevity"
+  - If title or organization was modified, provide title_rationale or organization_rationale
+  - If summary was modified, provide summary_rationale
+  - Leave rationale fields EMPTY if the content is unchanged from the original resume
+  - Leave rationale fields EMPTY for completely new bullets that weren't in the original
+
 **VALIDATION CHECKLIST (before returning):**
 ✓ ALL resume experiences matching JD keywords are included
 ✓ Resume experiences/skills NOT in JD are also included (space permitting)
@@ -494,6 +519,7 @@ ${input.terms.join(', ')}
 ✓ ZERO fabricated information - everything traces back to resume
 ✓ NO skills added that aren't in the resume
 ✓ NO experience/projects added that aren't in the resume
+✓ Change rationale provided for all modified bullets/titles/summaries
 
 Use the generate_tailored_resume tool to return your result.`;
   }
