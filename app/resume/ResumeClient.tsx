@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { TailoredResume } from '@/lib/types';
 import ATSKeyTermsDropdown from '@/components/ATSKeyTermsDropdown';
+import ResumeComparisonModal from '@/components/ResumeComparisonModal';
 import { getMatchedTermsFromResume } from '@/lib/utils/validation';
 
 export default function ResumeClient({ sessionId }: { sessionId: string | null }) {
@@ -16,6 +17,8 @@ export default function ResumeClient({ sessionId }: { sessionId: string | null }
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingLetter, setIsGeneratingLetter] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [originalResumeText, setOriginalResumeText] = useState<string>('');
 
   useEffect(() => {
     if (!sessionId) {
@@ -30,6 +33,7 @@ export default function ResumeClient({ sessionId }: { sessionId: string | null }
         setCompanyName(data.companyName || null);
         setPosition(data.position || null);
         if (data.terms) setAllTerms(JSON.parse(data.terms));
+        if (data.resumeText) setOriginalResumeText(data.resumeText);
       })
       .catch((err) => console.error('Error fetching resume:', err))
       .finally(() => setIsLoading(false));
@@ -105,14 +109,22 @@ export default function ResumeClient({ sessionId }: { sessionId: string | null }
         <div className="lg:col-span-2 card-beige">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-ink-900">Resume Preview</h3>
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
-                isEditing ? 'bg-gold-300 text-ink-900 hover:bg-gold-400' : 'bg-beige-100 text-ink-900 hover:bg-beige-200'
-              }`}
-            >
-              {isEditing ? 'Done Editing' : 'Edit Resume'}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="px-4 py-2 rounded text-sm font-medium transition-colors bg-beige-100 text-ink-900 hover:bg-beige-200"
+              >
+                View Original
+              </button>
+              <button
+                onClick={() => setIsEditing(!isEditing)}
+                className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                  isEditing ? 'bg-gold-300 text-ink-900 hover:bg-gold-400' : 'bg-beige-100 text-ink-900 hover:bg-beige-200'
+                }`}
+              >
+                {isEditing ? 'Done Editing' : 'Edit Resume'}
+              </button>
+            </div>
           </div>
 
           <div className="max-h-[600px] overflow-y-auto">
@@ -311,6 +323,16 @@ export default function ResumeClient({ sessionId }: { sessionId: string | null }
           </div>
         </div>
       </div>
+
+      {/* Resume Comparison Modal */}
+      {resume && (
+        <ResumeComparisonModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          originalResumeText={originalResumeText}
+          generatedResume={resume}
+        />
+      )}
     </div>
   );
 }
