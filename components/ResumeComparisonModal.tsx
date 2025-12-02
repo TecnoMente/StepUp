@@ -31,44 +31,6 @@ export default function ResumeComparisonModal({
     };
   }, [isOpen, onClose]);
 
-  // Helper function to check if text appears in original resume (with stricter matching)
-  const isTextInOriginal = (text: string): boolean => {
-    if (!text) return true;
-
-    // First check: exact substring match (case-insensitive)
-    // This catches unchanged titles, organizations, etc.
-    if (originalResumeText.toLowerCase().includes(text.toLowerCase().trim())) {
-      return true;
-    }
-
-    const normalizedText = text.toLowerCase().replace(/[^\w\s]/g, '').trim();
-    const normalizedOriginal = originalResumeText.toLowerCase().replace(/[^\w\s]/g, '');
-
-    // Second check: normalized exact match
-    if (normalizedOriginal.includes(normalizedText)) {
-      return true;
-    }
-
-    // Check if at least 85% of the words appear in sequence in the original
-    const words = normalizedText.split(/\s+/);
-    if (words.length === 0) return true;
-
-    // For short texts (< 4 words), we already checked exact match above, so this is changed
-    if (words.length < 4) {
-      return false;
-    }
-
-    // For longer texts, check if significant portion exists (stricter: 85%)
-    const windowSize = Math.max(4, Math.floor(words.length * 0.85));
-    for (let i = 0; i <= words.length - windowSize; i++) {
-      const window = words.slice(i, i + windowSize).join(' ');
-      if (normalizedOriginal.includes(window)) {
-        return true;
-      }
-    }
-    return false;
-  };
-
   // Helper function to check if original text appears in tailored resume (even if modified)
   const isOriginalTextInTailored = (text: string): boolean => {
     if (!text || text.trim().length < 10) return true; // Skip very short lines
