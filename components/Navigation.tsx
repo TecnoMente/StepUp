@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 export default function Navigation() {
-  const { data: session, status } = useSession();
+  const { data: session, status } = useSession(); 
 
   return (
     <nav className="bg-teal-900/50 backdrop-blur-sm border-b border-teal-800">
