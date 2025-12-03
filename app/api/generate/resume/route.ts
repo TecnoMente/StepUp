@@ -623,7 +623,7 @@ export async function POST(request: NextRequest) {
               linkedin: undefined,
               github: undefined,
               sections: [minimalSection],
-              matched_term_count: recalculateMatchedTerms({ ...finalResume, sections: [minimalSection] } as TailoredResume),
+              matched_term_count: recalculateMatchedTerms({ ...finalResume, sections: [minimalSection] } as TailoredResume, atsTerms),
             } as TailoredResume;
           })();
 
@@ -655,7 +655,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Recalculate matched term count and save finalResume
-    const actualMatchedCount = recalculateMatchedTerms(finalResume);
+    const actualMatchedCount = recalculateMatchedTerms(finalResume, atsTerms);
     finalResume.matched_term_count = actualMatchedCount;
 
     await prisma.session.update({

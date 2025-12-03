@@ -6,11 +6,19 @@ import type { TailoredCoverLetter } from '../lib/types';
 
 const prisma = new PrismaClient();
 
-function recalculateMatchedTermsForCoverLetter(letter: TailoredCoverLetter): number {
+function recalculateMatchedTermsForCoverLetter(letter: TailoredCoverLetter, atsTerms?: string[]): number {
   const uniqueTerms = new Set<string>();
 
+  // Normalize ATS terms for case-insensitive comparison
+  const normalizedAtsTerms = atsTerms ? new Set(atsTerms.map(t => t.toLowerCase())) : null;
+
   for (const paragraph of letter.paragraphs) {
-    paragraph.matched_terms.forEach((term) => uniqueTerms.add(term));
+    paragraph.matched_terms.forEach((term) => {
+      // Only count if term is in the ATS keyword list (case-insensitive)
+      if (!normalizedAtsTerms || normalizedAtsTerms.has(term.toLowerCase())) {
+        uniqueTerms.add(term.toLowerCase());
+      }
+    });
   }
 
   return uniqueTerms.size;
@@ -42,7 +50,8 @@ async function migrateCoverLetterAtsScores() {
       }
 
       const letter = JSON.parse(session.letterJson) as TailoredCoverLetter;
-      const atsScore = recalculateMatchedTermsForCoverLetter(letter);
+      const atsTerms = session.terms ? JSON.parse(session.terms) as string[] : undefined;
+      const atsScore = recalculateMatchedTermsForCoverLetter(letter, atsTerms);
 
       // Update the session with the calculated ATS score
       await prisma.session.update({

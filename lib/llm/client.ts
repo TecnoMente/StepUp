@@ -236,6 +236,7 @@ export class LLMClient {
                                 matched_terms: {
                                   type: 'array',
                                   items: { type: 'string' },
+                                  description: 'Array of ATS keywords from the provided list that appear in this bullet. ONLY include terms from the provided ATS Keywords list, do not add any other terms.',
                                 },
                               },
                               required: ['text', 'evidence_spans', 'matched_terms'],
@@ -326,6 +327,7 @@ export class LLMClient {
                     matched_terms: {
                       type: 'array',
                       items: { type: 'string' },
+                      description: 'Array of ATS keywords from the provided list that appear in this paragraph. ONLY include terms from the provided ATS Keywords list, do not add any other terms.',
                     },
                   },
                   required: ['text', 'evidence_spans', 'matched_terms'],
@@ -494,6 +496,7 @@ ${input.terms.join(', ')}
 ✓ ZERO fabricated information - everything traces back to resume
 ✓ NO skills added that aren't in the resume
 ✓ NO experience/projects added that aren't in the resume
+✓ matched_terms arrays ONLY contain terms from the provided ATS Keywords list (do not add any other terms)
 
 Use the generate_tailored_resume tool to return your result.`;
   }
@@ -540,6 +543,7 @@ ${input.terms.join(', ')}
 6. DO NOT exaggerate or embellish - use only facts stated in the resume
 7. If the resume doesn't mention a skill from the JD, do NOT claim the candidate has it
 8. Keep it professional and concise (under 400 words)
+9. In matched_terms arrays, ONLY include terms from the provided ATS Keywords list above - do not add any other terms
 
 Use the generate_cover_letter tool to return your result.`;
   }

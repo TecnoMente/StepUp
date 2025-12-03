@@ -325,15 +325,24 @@ export function tryRepairEvidenceSpans(
 
 /**
  * Calculate actual matched term count from resume
+ * Only counts terms that are in the original ATS keyword list
  */
-export function recalculateMatchedTerms(resume: TailoredResume): number {
+export function recalculateMatchedTerms(resume: TailoredResume, atsTerms?: string[]): number {
   const uniqueTerms = new Set<string>();
+
+  // Normalize ATS terms for case-insensitive comparison
+  const normalizedAtsTerms = atsTerms ? new Set(atsTerms.map(t => t.toLowerCase())) : null;
 
   for (const section of resume.sections) {
     for (const item of section.items) {
       if (item.bullets) {
         for (const bullet of item.bullets) {
-          bullet.matched_terms.forEach((term) => uniqueTerms.add(term));
+          bullet.matched_terms.forEach((term) => {
+            // Only count if term is in the ATS keyword list (case-insensitive)
+            if (!normalizedAtsTerms || normalizedAtsTerms.has(term.toLowerCase())) {
+              uniqueTerms.add(term.toLowerCase());
+            }
+          });
         }
       }
     }
@@ -342,11 +351,19 @@ export function recalculateMatchedTerms(resume: TailoredResume): number {
   return uniqueTerms.size;
 }
 
-export function recalculateMatchedTermsForCoverLetter(letter: TailoredCoverLetter): number {
+export function recalculateMatchedTermsForCoverLetter(letter: TailoredCoverLetter, atsTerms?: string[]): number {
   const uniqueTerms = new Set<string>();
 
+  // Normalize ATS terms for case-insensitive comparison
+  const normalizedAtsTerms = atsTerms ? new Set(atsTerms.map(t => t.toLowerCase())) : null;
+
   for (const paragraph of letter.paragraphs) {
-    paragraph.matched_terms.forEach((term) => uniqueTerms.add(term));
+    paragraph.matched_terms.forEach((term) => {
+      // Only count if term is in the ATS keyword list (case-insensitive)
+      if (!normalizedAtsTerms || normalizedAtsTerms.has(term.toLowerCase())) {
+        uniqueTerms.add(term.toLowerCase());
+      }
+    });
   }
 
   return uniqueTerms.size;

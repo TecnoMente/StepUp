@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Recalculate matched term count and save final letter
-    const actualMatchedCount = recalculateMatchedTermsForCoverLetter(finalLetter);
+    const actualMatchedCount = recalculateMatchedTermsForCoverLetter(finalLetter, atsTerms);
     finalLetter.matched_term_count = actualMatchedCount;
 
     // Save final letter
