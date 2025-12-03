@@ -8,6 +8,7 @@ interface ResumeComparisonModalProps {
   onClose: () => void;
   originalResumeText: string;
   generatedResume: TailoredResume;
+  atsTerms?: string[];
 }
 
 export default function ResumeComparisonModal({
@@ -15,6 +16,7 @@ export default function ResumeComparisonModal({
   onClose,
   originalResumeText,
   generatedResume,
+  atsTerms = [],
 }: ResumeComparisonModalProps) {
   // Close on Escape key
   useEffect(() => {
@@ -30,6 +32,22 @@ export default function ResumeComparisonModal({
       document.body.style.overflow = 'unset';
     };
   }, [isOpen, onClose]);
+
+  // Helper function to generate rationale for filtered content
+  const getFilterRationale = (text: string): string => {
+    const normalizedText = text.toLowerCase();
+
+    // Check if the text contains any of the ATS terms
+    const containsATSTerms = atsTerms.some(term =>
+      normalizedText.includes(term.toLowerCase())
+    );
+
+    if (containsATSTerms) {
+      return 'Omitted for space constraints to maintain one-page format';
+    } else {
+      return 'Does not align with key job description requirements';
+    }
+  };
 
   // Helper function to check if original text appears in tailored resume (even if modified)
   const isOriginalTextInTailored = (text: string): boolean => {
@@ -107,7 +125,7 @@ export default function ResumeComparisonModal({
       );
 
       if (isContactInfo) {
-        return { text: line, isFiltered: false };
+        return { text: line, isFiltered: false, rationale: '' };
       }
 
       // Check if line looks like a bullet point or significant content
@@ -115,8 +133,9 @@ export default function ResumeComparisonModal({
       const isSignificant = trimmed.length > 20;
 
       const isFiltered = (isBullet || isSignificant) && !isOriginalTextInTailored(trimmed);
+      const rationale = isFiltered ? getFilterRationale(trimmed) : '';
 
-      return { text: line, isFiltered };
+      return { text: line, isFiltered, rationale };
     });
   };
 
@@ -161,7 +180,7 @@ export default function ResumeComparisonModal({
                     <span
                       key={idx}
                       className={line.isFiltered ? 'bg-orange-200 block' : 'block'}
-                      title={line.isFiltered ? 'Filtered out from tailored resume' : ''}
+                      title={line.isFiltered ? `Filtered: ${line.rationale}` : ''}
                     >
                       {line.text}
                       {'\n'}

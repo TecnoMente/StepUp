@@ -331,6 +331,7 @@ export default function ResumeClient({ sessionId }: { sessionId: string | null }
           onClose={() => setIsModalOpen(false)}
           originalResumeText={originalResumeText}
           generatedResume={resume}
+          atsTerms={allTerms}
         />
       )}
     </div>
