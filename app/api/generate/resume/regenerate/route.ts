@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Recalculate matched terms
-    regeneratedResume.matched_term_count = recalculateMatchedTerms(regeneratedResume, atsTerms);
+    regeneratedResume.matched_term_count = recalculateMatchedTerms(regeneratedResume);
 
     // Validate the regenerated resume
     const validation = validateTailoredResume(regeneratedResume, {
