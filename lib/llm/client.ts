@@ -91,6 +91,10 @@ CRITICAL ATS FORMATTING RULES:
    - NO tables, text boxes, columns, or special formatting
    - Font sizing implied: 10-12pt body, headers slightly larger
    - Consistent date format: "Month YYYY - Month YYYY" (e.g., "May 2025 - August 2025")
+   - **PRESERVE STRUCTURE:** Each job, project, or degree is a SEPARATE item in the items array
+     • For PROJECTS: Put project name in "title" field, leave "organization" empty
+     • For WORK EXPERIENCE: Put company in "organization", role in "title"
+     • DO NOT merge multiple projects or jobs into a single item
 
 2. **KEYWORD OPTIMIZATION (Primary ATS Scoring Factor):**
    - Extract exact keywords from job description
@@ -472,11 +476,25 @@ ${input.terms.join(', ')}
   - Education: Institution, degree, graduation date, GPA (if provided), relevant coursework (if listed)
   - Skills: Include ALL skills from resume (organize by theme), prioritize JD-matching skills first
   - Work Experience: ALL roles from resume, prioritizing recent and JD-relevant
+    • Each job is a separate item with organization, title, location, dateRange
   - Projects: Include all resume projects, prioritize those demonstrating JD-relevant skills
+    • CRITICAL: Each project MUST be a separate item in the items array
+    • Put project name in "title" field, leave "organization" empty
+    • Include dateRange and location if present in resume
   - Leadership/Activities: Include if in resume and space permits
   - Additional Skills: Include resume skills even if not in JD (space permitting)
 
-6. **FACTUAL ACCURACY (ZERO FABRICATION):**
+6. **CRITICAL: PRESERVE RESUME STRUCTURE:**
+  - For WORK EXPERIENCE: Each job is a separate item with organization, title (role), location, dateRange, and bullets
+  - For PROJECTS: Each project is a separate item with title (project name), location (if applicable), dateRange, and bullets
+    • DO NOT merge multiple projects into a single item
+    • Each project gets its own item in the items array
+    • Put the project name in the "title" field
+    • Leave "organization" field empty for projects (unless the project has an associated organization)
+  - For EDUCATION: Each degree/institution is a separate item
+  - Maintain the same number of items (experiences, projects, degrees) as in the original resume
+
+7. **FACTUAL ACCURACY (ZERO FABRICATION):**
   - Extract candidate's full name, email, phone, location, LinkedIn, and GitHub URLs ONLY if present in resume
   - Use ONLY facts from the resume (and optional extra info field)
   - For EVERY bullet, cite evidence_spans with exact character offsets pointing to resume text
@@ -484,6 +502,7 @@ ${input.terms.join(', ')}
   - If contact info (LinkedIn, GitHub, phone, etc.) is not in the resume, leave those fields empty
   - If you can't find evidence for a claim in the resume, DON'T include it
   - If a metric/number is not in the resume, don't make one up
+  - PRESERVE the structure: same number of jobs, projects, degrees as in original resume
 
 **VALIDATION CHECKLIST (before returning):**
 ✓ ALL resume experiences matching JD keywords are included

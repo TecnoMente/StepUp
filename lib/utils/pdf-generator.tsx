@@ -211,56 +211,72 @@ export const ResumePDFDocument = ({ resume, opts }: { resume: TailoredResume; op
         <View key={sectionIdx} style={resumeStyles.section}>
           <Text style={resumeStyles.sectionTitle}>{section.name.toUpperCase()}</Text>
 
-          {section.items.map((item, itemIdx) => (
-            <View key={itemIdx} style={resumeStyles.item}>
-              {item.title && (
-                <View style={resumeStyles.itemHeader}>
-                  {/* First line: Organization and Location */}
-                  <View style={resumeStyles.itemFirstLine}>
-                    {/* Render organization/title only if present to avoid empty string nodes */}
-                    { (item.organization || item.title) ? (
-                      <Text style={resumeStyles.itemOrganization}>
-                        {item.organization || item.title}
-                      </Text>
-                    ) : null }
-                    { item.location ? (
-                      <Text style={resumeStyles.itemLocation}>
-                        {item.location}
-                      </Text>
-                    ) : null }
-                  </View>
-                  {/* Second line: Title (Role) and Date */}
-                  <View style={resumeStyles.itemSecondLine}>
-                    { item.title && item.organization ? (
-                      <Text style={resumeStyles.itemTitle}>
-                        {item.title}
-                      </Text>
-                    ) : null }
-                    { item.dateRange ? (
-                      <Text style={resumeStyles.itemDate}>
-                        {item.dateRange}
-                      </Text>
-                    ) : null }
-                  </View>
-                </View>
-              )}
+          {section.items.map((item, itemIdx) => {
+            // Determine if this is a "Work Experience" pattern (has organization) or "Projects" pattern (no organization)
+            const hasOrganization = !!item.organization;
 
-              {item.bullets && item.bullets.length > 0 && (
-                <View style={resumeStyles.bulletList}>
-                  {item.bullets.map((bullet, bulletIdx) => {
-                    const text = typeof bullet.text === 'string' ? bullet.text.trim() : '';
-                    if (!text) return null; // skip empty bullets
-                    return (
-                      <View key={bulletIdx} style={resumeStyles.bullet}>
-                        <Text>•</Text>
-                        <Text style={resumeStyles.bulletText}>{text}</Text>
+            return (
+              <View key={itemIdx} style={resumeStyles.item}>
+                {(item.title || item.organization) && (
+                  <View style={resumeStyles.itemHeader}>
+                    {/* First line: For Work Experience (Organization | Location), For Projects (Title | Date or Location) */}
+                    <View style={resumeStyles.itemFirstLine}>
+                      { (item.organization || item.title) ? (
+                        <Text style={resumeStyles.itemOrganization}>
+                          {item.organization || item.title}
+                        </Text>
+                      ) : null }
+                      { hasOrganization && item.location ? (
+                        <Text style={resumeStyles.itemLocation}>
+                          {item.location}
+                        </Text>
+                      ) : null }
+                      { !hasOrganization && item.dateRange ? (
+                        <Text style={resumeStyles.itemDate}>
+                          {item.dateRange}
+                        </Text>
+                      ) : null }
+                    </View>
+                    {/* Second line: For Work Experience (Title | Date), For Projects (Organization if exists | Date if organization exists, else nothing) */}
+                    {(hasOrganization || item.location) && (
+                      <View style={resumeStyles.itemSecondLine}>
+                        { hasOrganization && item.title ? (
+                          <Text style={resumeStyles.itemTitle}>
+                            {item.title}
+                          </Text>
+                        ) : null }
+                        { !hasOrganization && item.location ? (
+                          <Text style={resumeStyles.itemTitle}>
+                            {item.location}
+                          </Text>
+                        ) : null }
+                        { hasOrganization && item.dateRange ? (
+                          <Text style={resumeStyles.itemDate}>
+                            {item.dateRange}
+                          </Text>
+                        ) : null }
                       </View>
-                    );
-                  })}
-                </View>
-              )}
-            </View>
-          ))}
+                    )}
+                  </View>
+                )}
+
+                {item.bullets && item.bullets.length > 0 && (
+                  <View style={resumeStyles.bulletList}>
+                    {item.bullets.map((bullet, bulletIdx) => {
+                      const text = typeof bullet.text === 'string' ? bullet.text.trim() : '';
+                      if (!text) return null; // skip empty bullets
+                      return (
+                        <View key={bulletIdx} style={resumeStyles.bullet}>
+                          <Text>•</Text>
+                          <Text style={resumeStyles.bulletText}>{text}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+            );
+          })}
         </View>
       ))}
     </Page>
