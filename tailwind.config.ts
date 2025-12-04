@@ -15,6 +15,8 @@ const config: Config = {
         },
         beige: {
           50: "#f5ead7",
+          100: "#e8dcc5",
+          200: "#dbc9a8",
         },
         gold: {
           300: "#d9b783",

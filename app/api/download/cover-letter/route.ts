@@ -29,10 +29,33 @@ export async function GET(request: NextRequest) {
     // Generate PDF buffer
     const pdfBuffer = await generateCoverLetterPDF(letter);
 
+    // Get resume data to extract name
+    let resumeName = 'CoverLetter';
+    if (session.resumeJson) {
+      try {
+        const resume = JSON.parse(session.resumeJson);
+        if (resume.name) {
+          const nameParts = resume.name.trim().split(/\s+/);
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+          const companyName = session.companyName || 'Company';
+
+          // Remove non-alphanumeric characters from each part
+          const safeFirstName = firstName.replace(/[^a-zA-Z0-9]/g, '');
+          const safeLastName = lastName.replace(/[^a-zA-Z0-9]/g, '');
+          const safeCompanyName = companyName.replace(/[^a-zA-Z0-9]/g, '');
+
+          resumeName = `${safeFirstName}${safeLastName}${safeCompanyName}_CoverLetter`;
+        }
+      } catch (e) {
+        console.error('Failed to parse resume name:', e);
+      }
+    }
+
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': 'attachment; filename="Cover_Letter.pdf"',
+        'Content-Disposition': `attachment; filename="${resumeName}.pdf"`,
       },
     });
   } catch (error) {

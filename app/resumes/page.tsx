@@ -31,16 +31,24 @@ export default function ResumesPage() {
     router.push(`/resume?sessionId=${sessionId}`);
   };
 
+  const handleDownloadResume = (sessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    window.location.href = `/api/download/resume?sessionId=${sessionId}`;
+  };
+
   if (isLoading) {
     return (
-      <div className="container-custom py-12">
-        <div className="text-center text-beige-50 text-xl">Loading your resumes...</div>
+      <div className="min-h-screen bg-ink-900 py-12">
+        <div className="container-custom">
+          <div className="text-center text-beige-50 text-xl">Loading your resumes...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container-custom py-12">
+    <div className="min-h-screen bg-ink-900 py-12">
+      <div className="container-custom">
       <div className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-serif font-bold text-beige-50 mb-3">
           Your Resumes
@@ -87,19 +95,28 @@ export default function ResumesPage() {
                   </div>
                 )}
               </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleViewResume(session.id);
-                }}
-                className="btn-primary w-full text-sm"
-              >
-                View & Download
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewResume(session.id);
+                  }}
+                  className="btn-primary flex-1 text-sm"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={(e) => handleDownloadResume(session.id, e)}
+                  className="bg-beige-100 text-ink-900 hover:bg-beige-200 flex-1 text-sm px-4 py-2 rounded font-medium transition-colors"
+                >
+                  Download
+                </button>
+              </div>
             </div>
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

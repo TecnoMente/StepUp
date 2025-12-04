@@ -32,13 +32,13 @@ export default async function DashboardPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
+    <div className="min-h-screen py-12">
+      <div className="container-custom">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-serif font-bold text-beige-50 mb-3">
             My Resumes & Cover Letters
           </h1>
-          <p className="mt-2 text-gray-600">
+          <p className="text-lg text-beige-50/90">
             Access your tailored resumes and cover letters from any device
           </p>
         </div>
