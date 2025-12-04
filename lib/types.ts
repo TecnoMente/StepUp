@@ -78,6 +78,16 @@ export interface GenerateCoverLetterInput {
   hint?: string;
 }
 
+export interface RegenerateTailoredResumeInput extends GenerateResumeInput {
+  currentResume: TailoredResume;
+  suggestions: string;
+}
+
+export interface RegenerateTailoredCoverLetterInput extends GenerateCoverLetterInput {
+  currentCoverLetter: TailoredCoverLetter;
+  suggestions: string;
+}
+
 export interface ValidationError {
   field: string;
   message: string;

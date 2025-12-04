@@ -8,6 +8,8 @@ import type {
   GenerateCoverLetterInput,
   TailoredResume,
   TailoredCoverLetter,
+  RegenerateTailoredResumeInput,
+  RegenerateTailoredCoverLetterInput,
 } from '@/lib/types';
 
 // System prompt for Claude - enforces non-hallucination rules AND strict ATS optimization
@@ -372,6 +374,233 @@ export class LLMClient {
   }
 
   /**
+   * Regenerate a tailored resume based on user suggestions
+   */
+  async regenerateTailoredResume(input: RegenerateTailoredResumeInput): Promise<TailoredResume> {
+    const userPrompt = this.buildRegenerateResumePrompt(input);
+
+    const response = await this.client.messages.create({
+      model: this.model,
+      max_tokens: 8192,
+      temperature: 0.1,
+      system: SYSTEM_PROMPT,
+      messages: [
+        {
+          role: 'user',
+          content: userPrompt,
+        },
+      ],
+      tools: [
+        {
+          name: 'generate_tailored_resume',
+          description: 'Generate an ATS-optimized resume with evidence citations',
+          input_schema: {
+            type: 'object',
+            properties: {
+              name: {
+                type: 'string',
+                description: 'Full name of the candidate (extract from the resume)',
+              },
+              email: {
+                type: 'string',
+                description: 'Email address (extract from the resume)',
+              },
+              phone: {
+                type: 'string',
+                description: 'Phone number (extract from the resume)',
+              },
+              location: {
+                type: 'string',
+                description: 'City and state location (extract from the resume)',
+              },
+              linkedin: {
+                type: 'string',
+                description: 'LinkedIn profile URL (extract from the resume if present, do not fabricate)',
+              },
+              github: {
+                type: 'string',
+                description: 'GitHub profile URL (extract from the resume if present, do not fabricate)',
+              },
+              summary: {
+                type: 'string',
+                description: 'Optional professional summary',
+              },
+              summary_rationale: {
+                type: 'string',
+                description: 'If summary was modified from original, explain why (e.g., "Added keywords: project management", "Condensed for brevity"). Leave empty if unchanged.',
+              },
+              sections: {
+                type: 'array',
+                description: 'Resume sections (Education, Experience, Projects, Skills)',
+                items: {
+                  type: 'object',
+                  properties: {
+                    name: { type: 'string' },
+                    items: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          title: { type: 'string' },
+                          organization: { type: 'string' },
+                          location: { type: 'string' },
+                          dateRange: { type: 'string' },
+                          title_rationale: {
+                            type: 'string',
+                            description: 'If title was modified from original, explain why. Leave empty if unchanged.',
+                          },
+                          organization_rationale: {
+                            type: 'string',
+                            description: 'If organization was modified from original, explain why. Leave empty if unchanged.',
+                          },
+                          bullets: {
+                            type: 'array',
+                            items: {
+                              type: 'object',
+                              properties: {
+                                text: { type: 'string' },
+                                evidence_spans: {
+                                  type: 'array',
+                                  items: {
+                                    type: 'object',
+                                    properties: {
+                                      source: {
+                                        type: 'string',
+                                        enum: ['resume', 'jd', 'extra'],
+                                      },
+                                      start: { type: 'number' },
+                                      end: { type: 'number' },
+                                    },
+                                    required: ['source', 'start', 'end'],
+                                  },
+                                },
+                                matched_terms: {
+                                  type: 'array',
+                                  items: { type: 'string' },
+                                },
+                                change_rationale: {
+                                  type: 'string',
+                                  description: 'If bullet was modified/reworded from original, explain why (e.g., "Added quantifiable metrics", "Emphasized leadership", "Reworded to match JD keywords: teamwork"). Leave empty if unchanged or if this is a completely new bullet.',
+                                },
+                              },
+                              required: ['text', 'evidence_spans', 'matched_terms'],
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                  required: ['name', 'items'],
+                },
+              },
+              matched_term_count: {
+                type: 'number',
+                description: 'Total number of ATS terms matched',
+              },
+            },
+            required: ['name', 'sections', 'matched_term_count'],
+          },
+        },
+      ],
+      tool_choice: { type: 'tool', name: 'generate_tailored_resume' },
+    });
+
+    // Extract tool use result
+    const toolUse = response.content.find((block) => block.type === 'tool_use');
+    if (!toolUse || toolUse.type !== 'tool_use') {
+      throw new Error('Claude did not return a tool use response');
+    }
+
+    return toolUse.input as TailoredResume;
+  }
+
+  /**
+   * Regenerate a tailored cover letter based on user suggestions
+   */
+  async regenerateTailoredCoverLetter(input: RegenerateTailoredCoverLetterInput): Promise<TailoredCoverLetter> {
+    const userPrompt = this.buildRegenerateCoverLetterPrompt(input);
+
+    const response = await this.client.messages.create({
+      model: this.model,
+      max_tokens: 4096,
+      temperature: 0.1,
+      system: SYSTEM_PROMPT,
+      messages: [
+        {
+          role: 'user',
+          content: userPrompt,
+        },
+      ],
+      tools: [
+        {
+          name: 'generate_cover_letter',
+          description: 'Generate an ATS-optimized cover letter with evidence citations',
+          input_schema: {
+            type: 'object',
+            properties: {
+              date: {
+                type: 'string',
+                description: 'Current date at the top of the letter (e.g., "September 23, 2025")',
+              },
+              salutation: {
+                type: 'string',
+                description: 'Opening salutation (e.g., "Dear Hiring Manager,")',
+              },
+              paragraphs: {
+                type: 'array',
+                description: 'Cover letter paragraphs with evidence',
+                items: {
+                  type: 'object',
+                  properties: {
+                    text: { type: 'string' },
+                    evidence_spans: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          source: {
+                            type: 'string',
+                            enum: ['resume', 'jd', 'extra'],
+                          },
+                          start: { type: 'number' },
+                          end: { type: 'number' },
+                        },
+                        required: ['source', 'start', 'end'],
+                      },
+                    },
+                    matched_terms: {
+                      type: 'array',
+                      items: { type: 'string' },
+                    },
+                  },
+                  required: ['text', 'evidence_spans', 'matched_terms'],
+                },
+              },
+              closing: {
+                type: 'string',
+                description: 'Closing (e.g., "Sincerely,\\nJordan Patel")',
+              },
+              matched_term_count: {
+                type: 'number',
+                description: 'Total number of ATS terms matched',
+              },
+            },
+            required: ['date', 'salutation', 'paragraphs', 'closing', 'matched_term_count'],
+          },
+        },
+      ],
+      tool_choice: { type: 'tool', name: 'generate_cover_letter' },
+    });
+
+    const toolUse = response.content.find((block) => block.type === 'tool_use');
+    if (!toolUse || toolUse.type !== 'tool_use') {
+      throw new Error('Claude did not return a tool use response');
+    }
+
+    return toolUse.input as TailoredCoverLetter;
+  }
+
+  /**
    * Extract key ATS terms from job description using Claude
    */
   async extractKeyTerms(jd: string): Promise<string[]> {
@@ -566,6 +795,153 @@ ${input.terms.join(', ')}
 6. DO NOT exaggerate or embellish - use only facts stated in the resume
 7. If the resume doesn't mention a skill from the JD, do NOT claim the candidate has it
 8. Keep it professional and concise (under 400 words)
+
+Use the generate_cover_letter tool to return your result.`;
+  }
+
+  /**
+   * Build prompt for resume regeneration with user suggestions
+   */
+  private buildRegenerateResumePrompt(input: RegenerateTailoredResumeInput): string {
+    const aggressive = input.forceOnePage
+      ? '\n\n**AGGRESSIVE ONE-PAGE CONSTRAINT:** The resume must fit on one page. CONDENSE aggressively: shorten bullets, remove the least JD-relevant bullets, and tighten wording while maintaining evidence spans and factual accuracy.'
+      : '';
+
+    const hint = input.hint ? `\n\nHINT FOR THIS ATTEMPT: ${input.hint}` : '';
+
+    return `I need you to REGENERATE an ATS-optimized resume based on user feedback/suggestions. You previously created a resume, and now the user wants improvements.
+
+🚨 CRITICAL: You must STILL follow all the zero-fabrication rules. The job description and user suggestions are for guidance ONLY. DO NOT add any skills, experience, or information that is not explicitly stated in the original resume. 🚨
+
+**CURRENT RESUME (that you previously generated):**
+${JSON.stringify(input.currentResume, null, 2)}
+
+**USER'S SUGGESTIONS FOR IMPROVEMENT:**
+${input.suggestions}
+
+**Job Description (FOR KEYWORDS ONLY - NOT A SOURCE OF FACTS):**
+${input.jd}
+
+**Original Resume (YOUR ONLY SOURCE OF FACTS ABOUT THE CANDIDATE):**
+${input.resume}
+
+${input.extra ? `**Additional Information (ALSO A SOURCE OF FACTS):**\n${input.extra}\n` : ''}
+
+**ATS Keywords to Prioritize (use ONLY if they already exist in the resume):**
+${input.terms.join(', ')}
+
+**CRITICAL INSTRUCTIONS:**
+
+1. **🚨 MAINTAIN ZERO FABRICATION POLICY:**
+   - The original resume is STILL your ONLY source of factual information
+   - User suggestions are for improving HOW you present existing resume content, NOT for adding new content
+   - If user asks to "add more technical skills" → rephrase/reorganize EXISTING skills from resume, DON'T invent new ones
+   - If user asks to "emphasize leadership" → highlight EXISTING leadership content from resume
+   - If user asks to "use more action verbs" → rephrase EXISTING bullets with stronger verbs
+   - NEVER add skills, technologies, projects, achievements, or metrics not in the original resume
+
+2. **IMPLEMENT USER SUGGESTIONS (within factual constraints):**
+   - Carefully read and understand what the user is asking for
+   - Apply their suggestions by rephrasing, reorganizing, or emphasizing existing resume content
+   - If a suggestion would require fabricating information, IGNORE that part of the suggestion
+   - Maintain all evidence_spans pointing to the original resume
+   - Provide change_rationale fields explaining what you changed based on user feedback
+
+3. **PRESERVE ONE-PAGE FORMAT:**${aggressive}
+   - Target: 750-850 words total
+   - Use concise, achievement-focused bullets (15-25 words each)
+   - If over 850 words: tighten wording first, then reduce bullets on least relevant roles
+
+4. **MAINTAIN ATS OPTIMIZATION:**
+   - Continue using exact keywords from job description where they match resume content
+   - Keep achievement-focused bullets with quantified metrics (where resume provides them)
+   - Maintain ATS-compliant formatting (single column, simple bullets, standard headers)
+
+5. **CHANGE RATIONALE:**
+   - For bullets/content you modify based on user suggestions, include detailed change_rationale
+   - Example: "Per user request: emphasized leadership experience using stronger action verbs"
+   - Example: "Per user request: reorganized skills section to highlight technical skills first"
+
+**VALIDATION CHECKLIST (before returning):**
+✓ User suggestions implemented (where factually possible)
+✓ ZERO fabricated information - everything traces back to original resume
+✓ All facts have evidence_spans citations pointing to resume
+✓ Total word count ≤ 850 words
+✓ Change rationale provided for all modifications
+✓ NO skills/experience/projects added that aren't in the original resume
+
+Use the generate_tailored_resume tool to return your result.`;
+  }
+
+  /**
+   * Build prompt for cover letter regeneration with user suggestions
+   */
+  private buildRegenerateCoverLetterPrompt(input: RegenerateTailoredCoverLetterInput): string {
+    const aggressive = input.forceOnePage
+      ? '\n\n**AGGRESSIVE LENGTH CONSTRAINT:** Please condense to fit a single page while preserving factual accuracy and evidence spans. Shorten sentences and reduce paragraphs as necessary.'
+      : '';
+
+    const hint = input.hint ? `\n\nHINT FOR THIS ATTEMPT: ${input.hint}` : '';
+
+    // Format current date as "Month Day, Year" (e.g., "September 23, 2025")
+    const currentDate = new Date();
+    const formattedDate = currentDate.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+
+    return `I need you to REGENERATE a cover letter based on user feedback/suggestions. You previously created a cover letter, and now the user wants improvements.
+
+🚨 CRITICAL: You must STILL follow all the zero-fabrication rules. The job description and user suggestions are for guidance ONLY. DO NOT invent skills, achievements, or experiences. Use ONLY facts from the resume. 🚨
+
+**CURRENT COVER LETTER (that you previously generated):**
+${JSON.stringify(input.currentCoverLetter, null, 2)}
+
+**USER'S SUGGESTIONS FOR IMPROVEMENT:**
+${input.suggestions}
+
+**Job Description (FOR CONTEXT ONLY - NOT A SOURCE OF FACTS):**
+${input.jd}
+
+**Resume (YOUR ONLY SOURCE OF FACTS):**
+${input.resume}
+
+${input.extra ? `**Additional Information (ALSO A SOURCE OF FACTS):**\n${input.extra}\n` : ''}
+
+**ATS Terms to Prioritize (use ONLY if they match resume content):**
+${input.terms.join(', ')}
+
+**CRITICAL INSTRUCTIONS:**
+
+1. **🚨 MAINTAIN ZERO FABRICATION POLICY:**
+   - The resume is STILL your ONLY source of factual information
+   - User suggestions are for improving HOW you present existing facts, NOT for adding new content
+   - If user asks to "add more achievements" → rephrase EXISTING achievements from resume
+   - If user asks to "make it more compelling" → use stronger language for EXISTING facts
+   - NEVER invent skills, achievements, experiences, projects, or technologies
+
+2. **IMPLEMENT USER SUGGESTIONS (within factual constraints):**
+   - Carefully read and understand what the user is asking for
+   - Apply their suggestions by rephrasing, reorganizing, or emphasizing existing resume content
+   - If a suggestion would require fabricating information, IGNORE that part of the suggestion
+   - Maintain all evidence_spans pointing to the resume
+
+3. **PRESERVE PROFESSIONAL FORMAT:**${aggressive}
+   - Include today's date at the top: "${formattedDate}"
+   - Keep it professional and concise (under 400 words)
+   - Maintain 3-4 paragraph structure
+
+4. **MAINTAIN ATS OPTIMIZATION:**
+   - Naturally incorporate ATS terms ONLY when they match skills/experience in the resume
+   - For EVERY sentence, cite evidence_spans with exact character offsets from the resume
+
+**VALIDATION CHECKLIST (before returning):**
+✓ User suggestions implemented (where factually possible)
+✓ ZERO fabricated information - everything traces back to resume
+✓ All sentences have evidence_spans citations
+✓ Professional tone and format maintained
+✓ NO skills/experience/achievements added that aren't in the resume
 
 Use the generate_cover_letter tool to return your result.`;
   }
