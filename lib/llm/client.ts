@@ -807,8 +807,6 @@ Use the generate_cover_letter tool to return your result.`;
       ? '\n\n**AGGRESSIVE ONE-PAGE CONSTRAINT:** The resume must fit on one page. CONDENSE aggressively: shorten bullets, remove the least JD-relevant bullets, and tighten wording while maintaining evidence spans and factual accuracy.'
       : '';
 
-    const hint = input.hint ? `\n\nHINT FOR THIS ATTEMPT: ${input.hint}` : '';
-
     return `I need you to REGENERATE an ATS-optimized resume based on user feedback/suggestions. You previously created a resume, and now the user wants improvements.
 
 🚨 CRITICAL: You must STILL follow all the zero-fabrication rules. The job description and user suggestions are for guidance ONLY. DO NOT add any skills, experience, or information that is not explicitly stated in the original resume. 🚨
@@ -880,8 +878,6 @@ Use the generate_tailored_resume tool to return your result.`;
     const aggressive = input.forceOnePage
       ? '\n\n**AGGRESSIVE LENGTH CONSTRAINT:** Please condense to fit a single page while preserving factual accuracy and evidence spans. Shorten sentences and reduce paragraphs as necessary.'
       : '';
-
-    const hint = input.hint ? `\n\nHINT FOR THIS ATTEMPT: ${input.hint}` : '';
 
     // Format current date as "Month Day, Year" (e.g., "September 23, 2025")
     const currentDate = new Date();
